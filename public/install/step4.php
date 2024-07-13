@@ -60,7 +60,7 @@ if ($object->codecheck) {
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>SalePro Installer</title>
+    <title>WiPOS Installer</title>
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="assets/css/bootstrap.min.css" rel="stylesheet">
@@ -72,13 +72,13 @@ if ($object->codecheck) {
         <div class='wrapper'>
             <header>
                 <img style="height:30px; width: 90px;" src="assets/images/logo.png" alt="Logo"/>
-                <h1 class="text-center">SalePro Auto Installer</h1>
+                <h1 class="text-center">WiPOS Auto Installer</h1>
             </header>
             <hr>
             <div class="content pad-top-bot-50">
                 <p>
                     <h5><strong class="theme-color">Congratulations!</strong>
-                    You have successfully installed SalePro!</h5><br>
+                    You have successfully installed WiPOS!</h5><br>
                     Please login here -  <strong><a href="<?php echo '../../'; ?>">Login</a></strong>
                     <br>
                     Username: <strong>admin</strong><br>

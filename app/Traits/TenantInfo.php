@@ -79,14 +79,14 @@ trait TenantInfo {
         $sqlFile = fopen("public/tenant_necessary_base.sql", "r");
         $baseSqlData = fread($sqlFile,filesize("public/tenant_necessary_base.sql"));
         fclose($sqlFile);
-        $newSqlDataForSetting = str_replace("(1, 'SalePro', '20220905125905.png', 0, '1', 0, 'monthly', 'own', 'd/m/Y', 'Lioncoders', 'standard', 1, 'default.css', '2018-07-06 06:13:11', '2022-09-05 06:59:05', 'prefix', '1970-01-01');", "(1, '".$general_setting->site_title."', '".$general_setting->site_logo."', 0, '1', ".$request->package_id.", "."'".$request->subscription_type."', 'own', 'd/m/Y', '".$general_setting->developed_by."', 'standard', 1, 'default.css', '2018-07-06 06:13:11', '2022-09-05 06:59:05', 'prefix', '".date("Y-m-d", strtotime("+".$numberOfDaysToExpired." days"))."');", $baseSqlData);
+        $newSqlDataForSetting = str_replace("(1, 'WiPOS', '20220905125905.png', 0, '1', 0, 'monthly', 'own', 'd/m/Y', 'Lioncoders', 'standard', 1, 'default.css', '2018-07-06 06:13:11', '2022-09-05 06:59:05', 'prefix', '1970-01-01');", "(1, '".$general_setting->site_title."', '".$general_setting->site_logo."', 0, '1', ".$request->package_id.", "."'".$request->subscription_type."', 'own', 'd/m/Y', '".$general_setting->developed_by."', 'standard', 1, 'default.css', '2018-07-06 06:13:11', '2022-09-05 06:59:05', 'prefix', '".date("Y-m-d", strtotime("+".$numberOfDaysToExpired." days"))."');", $baseSqlData);
         $sqlFile = fopen("public/tenant_necessary.sql", "w");
         fwrite($sqlFile, $newSqlDataForSetting);
         fclose($sqlFile);
         //updating user information
         $encryptedPass = '$2y$10$DWAHTfjcvwCpOCXaJg11MOhsqns03uvlwiSUOQwkHL2YYrtrXPcL6';
         $newEncryptedPass = bcrypt($request->password);
-        $newSqlDataForUser = str_replace("(1, 'admin', 'admin@gmail.com', '".$encryptedPass."', '6mN44MyRiQZfCi0QvFFIYAU9LXIUz9CdNIlrRS5Lg8wBoJmxVu8auzTP42ZW', '12112', 'lioncoders', 1, NULL, NULL, 1, 0, '2018-06-02 03:24:15', '2018-09-05 00:14:15')", "(1, '".$request->name."', '".$request->email."', '".$newEncryptedPass."', '6mN44MyRiQZfCi0QvFFIYAU9LXIUz9CdNIlrRS5Lg8wBoJmxVu8auzTP42ZW', ".$request->phone_number.",  '".$request->company_name."', 1, NULL, NULL, 1, 0, '2018-06-02 03:24:15', '2018-09-05 00:14:15')", $newSqlDataForSetting);
+        $newSqlDataForUser = str_replace("(1, 'admin', 'admin@gmail.com', '".$encryptedPass."', '6mN44MyRiQZfCi0QvFFIYAU9LXIUz9CdNIlrRS5Lg8wBoJmxVu8auzTP42ZW', '12112', 'witek', 1, NULL, NULL, 1, 0, '2018-06-02 03:24:15', '2018-09-05 00:14:15')", "(1, '".$request->name."', '".$request->email."', '".$newEncryptedPass."', '6mN44MyRiQZfCi0QvFFIYAU9LXIUz9CdNIlrRS5Lg8wBoJmxVu8auzTP42ZW', ".$request->phone_number.",  '".$request->company_name."', 1, NULL, NULL, 1, 0, '2018-06-02 03:24:15', '2018-09-05 00:14:15')", $newSqlDataForSetting);
         $sqlFile = fopen("public/tenant_necessary.sql", "w");
         fwrite($sqlFile, $newSqlDataForUser);
         fclose($sqlFile);

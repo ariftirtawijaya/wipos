@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>SalePro Installer</title>
+    <title>WiPOS Installer</title>
     <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="assets/css/bootstrap.min.css" rel="stylesheet">
@@ -13,7 +13,7 @@
 		<div class='wrapper'>
 		    <header>
                 <img style="height:30px; width: 90px;" src="assets/images/logo.png" alt="Logo"/>
-	            <h1 class="text-center">SalePro Auto Installer</h1>
+	            <h1 class="text-center">WiPOS Auto Installer</h1>
 	        </header>
 	        <hr>
 		    <div class="content">

@@ -86,7 +86,7 @@ INSERT INTO billers VALUES("6","a","","a","","a@a.com","q","q","q","","","","0",
 INSERT INTO billers VALUES("7","a","","a","","a@a.com","a","a","a","","","","0","2018-10-07 08:34:36","2018-10-07 08:36:07");
 INSERT INTO billers VALUES("8","x","20230710015706.jpg","x","","x@x.com","x","x","x","","","","1","2019-03-18 17:02:42","2023-07-10 13:57:06");
 INSERT INTO billers VALUES("22","asdad345","","ssdfsfs","","ashfaqdev.php@gmail.com","5353453","dsdsa","SFSDFSDF","","","","0","2023-05-03 12:21:51","2023-05-06 16:00:20");
-INSERT INTO billers VALUES("23","Test","20230710015718.jpg","lioncoders","5534","irfanchowdhury80@gmail.com","654654","hfghg","hfghfg","fghfgh","6546","Bangladesh","1","2023-07-09 16:26:55","2023-07-10 13:57:18");
+INSERT INTO billers VALUES("23","Test","20230710015718.jpg","witek","5534","irfanchowdhury80@gmail.com","654654","hfghg","hfghfg","fghfgh","6546","Bangladesh","1","2023-07-09 16:26:55","2023-07-10 13:57:18");
 INSERT INTO billers VALUES("24","Regina Velazquez","20230710015551.jpg","Adkins Dale Inc","757","camezyryl@mailinator.com","+1 (917) 298-3092","Impedit adipisicing","Quas eius aperiam ni","Qui esse saepe illum","Laboris consequat C","Corporis aperiam non","0","2023-07-10 13:52:45","2023-07-10 13:56:45");
 
 
@@ -264,8 +264,8 @@ CREATE TABLE `customers` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=45 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO customers VALUES("1","1","22","dhiman","lioncoders","dhiman@gmail.com","+8801111111101","","kajir deuri","chittagong","","","bd","11","190","20","1","2018-05-12 16:00:48","2021-08-08 20:39:20");
-INSERT INTO customers VALUES("2","2","","moinul","lioncoders","","+8801200000001","","jamalkhan","chittagong","","","bd","","100","20","1","2018-05-12 16:04:51","2019-02-22 11:38:08");
+INSERT INTO customers VALUES("1","1","22","dhiman","witek","dhiman@gmail.com","+8801111111101","","kajir deuri","chittagong","","","bd","11","190","20","1","2018-05-12 16:00:48","2021-08-08 20:39:20");
+INSERT INTO customers VALUES("2","2","","moinul","witek","","+8801200000001","","jamalkhan","chittagong","","","bd","","100","20","1","2018-05-12 16:04:51","2019-02-22 11:38:08");
 INSERT INTO customers VALUES("3","3","","Tariq","big tree","irfanchowdhury43@gmail.com","3424","54654","khulshi","chittagong","Chittagong","43343","bd","","","","1","2018-05-12 16:07:52","2023-07-10 15:55:08");
 INSERT INTO customers VALUES("4","1","","test","","","4234","","frwerw","qwerwqr","","","","","","","0","2018-05-30 07:35:28","2018-05-30 07:37:38");
 INSERT INTO customers VALUES("8","1","","anwar","smart it","anwar@smartit.com","32321","","nasirabad","chittagong","","","bd","","","","0","2018-09-01 09:26:13","2018-09-01 09:29:55");
@@ -277,7 +277,7 @@ INSERT INTO customers VALUES("19","1","19","Ashfaq","Digital image","shakalaka@g
 INSERT INTO customers VALUES("21","1","21","Modon Miya","modon company","modon@gmail.com","2222","","kuril road","Dhaka","","","","","","","1","2020-11-13 13:12:11","2020-11-13 13:12:11");
 INSERT INTO customers VALUES("25","1","28","Imran miya","","imran@gmail.com","01923000001","","kljkj","hhjhh","","","","","","","0","2021-02-04 12:26:47","2021-02-04 12:26:47");
 INSERT INTO customers VALUES("35","1","","Debu","","","32423","","dsfs","fsdfs","","","","","","","0","2023-03-13 16:11:21","2023-07-09 16:24:11");
-INSERT INTO customers VALUES("44","1","","Irfan Chowdhury","Lion Coders","irfanchowdhury80@gmail.com","23123434","42342","Chittagong","Chittagong","Chittagong","4544","Bangladesh","","50","","1","2023-07-09 16:19:33","2023-07-10 15:55:26");
+INSERT INTO customers VALUES("44","1","","Irfan Chowdhury","WiTEK","irfanchowdhury80@gmail.com","23123434","42342","Chittagong","Chittagong","Chittagong","4544","Bangladesh","","50","","1","2023-07-09 16:19:33","2023-07-10 15:55:26");
 
 
 
@@ -551,7 +551,7 @@ CREATE TABLE `general_settings` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO general_settings VALUES("1","SalePros","20220905125905.png","0","1","","own","d-m-Y","LionCoders","standard","2","1","default.css","2018-07-06 12:13:11","2023-06-16 19:42:32","prefix","","0","","980980");
+INSERT INTO general_settings VALUES("1","SalePros","20220905125905.png","0","1","","own","d-m-Y","WiTEK","standard","2","1","default.css","2018-07-06 12:13:11","2023-06-16 19:42:32","prefix","","0","","980980");
 
 
 
@@ -3497,8 +3497,8 @@ CREATE TABLE `users` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=47 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO users VALUES("1","admin","admin@gmail.com","$2y$10$KOKg3BOPxpj.u7UPLB439uXGqn5WpTnUhZO1XQYeiuliE5huwZOEa","3QHqi4wX2TU0O5Dk7vgXEezdzTlhHzxGb005X3FPTOVEx8LzXSLFvGfWWNPB","12112","lioncoders","1","","","1","0","2018-06-02 09:24:15","2023-02-16 15:42:51");
-INSERT INTO users VALUES("3","dhiman da","dhiman@gmail.com","$2y$10$Fef6vu5E67nm11hX7V5a2u1ThNCQ6n9DRCvRF9TD7stk.Pmt2R6O.","5ehQM6JIfiQfROgTbB5let0Z93vjLHS7rd9QD5RPNgOxli3xdo7fykU7vtTt","212","lioncoders","1","","","0","1","2018-06-14 04:00:31","2020-11-05 13:06:51");
+INSERT INTO users VALUES("1","admin","admin@gmail.com","$2y$10$KOKg3BOPxpj.u7UPLB439uXGqn5WpTnUhZO1XQYeiuliE5huwZOEa","3QHqi4wX2TU0O5Dk7vgXEezdzTlhHzxGb005X3FPTOVEx8LzXSLFvGfWWNPB","12112","witek","1","","","1","0","2018-06-02 09:24:15","2023-02-16 15:42:51");
+INSERT INTO users VALUES("3","dhiman da","dhiman@gmail.com","$2y$10$Fef6vu5E67nm11hX7V5a2u1ThNCQ6n9DRCvRF9TD7stk.Pmt2R6O.","5ehQM6JIfiQfROgTbB5let0Z93vjLHS7rd9QD5RPNgOxli3xdo7fykU7vtTt","212","witek","1","","","0","1","2018-06-14 04:00:31","2020-11-05 13:06:51");
 INSERT INTO users VALUES("6","test","test@gmail.com","$2y$10$TDAeHcVqHyCmurki0wjLZeIl1SngKX3WLOhyTiCoZG3souQfqv.LS","KpW1gYYlOFacumklO2IcRfSsbC3KcWUZzOI37gqoqM388Xie6KdhaOHIFEYm","1234","212312","4","","","0","1","2018-06-23 09:05:33","2018-06-23 09:13:45");
 INSERT INTO users VALUES("8","test","test@yahoo.com","$2y$10$hlMigidZV0j2/IPkgE/xsOSb8WM2IRlsMv.1hg1NM7kfyd6bGX3hC","","31231","","4","","","0","1","2018-06-25 04:35:49","2018-07-02 07:07:39");
 INSERT INTO users VALUES("9","staff","anda@gmail.com","$2y$10$kxDbnynB6mB1e1w3pmtbSOlSxy/WwbLPY5TJpMi0Opao5ezfuQjQm","5rvuIyVSIXn3PcUJAUF0RiTG13XS2DS7JHwM4QObTmt598lHV3mMipFif2pB","3123","","4","5","1","1","0","2018-07-02 07:08:08","2018-10-24 03:41:13");
@@ -3508,7 +3508,7 @@ INSERT INTO users VALUES("12","john","john@gmail.com","$2y$10$P/pN2J/uyTYNzQy2kR
 INSERT INTO users VALUES("13","jjj","test@test.com","$2y$10$/Qx3gHWYWUhlF1aPfzXaCeZA7fRzfSEyCIOnk/dcC4ejO8PsoaalG","","1213","","1","","","0","1","2019-01-03 06:08:31","2019-03-03 10:02:29");
 INSERT INTO users VALUES("19","shakalaka","shakalaka@gmail.com","$2y$10$ketLWT0Ib/JXpo00eJlxoeSw.7leS8V1CUGInfbyOWT4F5.Xuo7S2","","1212","Digital image","5","","","1","0","2020-11-09 06:07:16","2020-11-09 06:07:16");
 INSERT INTO users VALUES("21","modon","modon@gmail.com","$2y$10$7VpoeGMkP8QCvL5zLwFW..6MYJ5MRumDLDoX.TTQtClS561rpFHY.","","2222","modon company","5","","","1","0","2020-11-13 13:12:08","2020-11-13 13:12:08");
-INSERT INTO users VALUES("22","dhiman","dhiman@gmail.com","$2y$10$3mPygsC6wwnDtw/Sg85IpuExtUhgaHx52Lwp7Rz0.FNfuFdfKVpRq","","+8801111111101","lioncoders","5","","","1","0","2020-11-15 12:14:58","2020-11-15 12:14:58");
+INSERT INTO users VALUES("22","dhiman","dhiman@gmail.com","$2y$10$3mPygsC6wwnDtw/Sg85IpuExtUhgaHx52Lwp7Rz0.FNfuFdfKVpRq","","+8801111111101","witek","5","","","1","0","2020-11-15 12:14:58","2020-11-15 12:14:58");
 INSERT INTO users VALUES("31","mbs","mbs@gmail.com","$2y$10$6Ldm1rWEVSrlTmpjIXkeQO9KwWJz/j0FB4U.fY1oCFeax47rvttEK","","2121","","4","1","2","0","0","2021-12-29 12:40:22","2021-12-29 12:40:22");
 INSERT INTO users VALUES("39","maja","maja@maja.com","$2y$10$lrMVhNDE9AuKhFrJIgG2y.zdtrCltR8/JB1okO0W8GsUcMjSFW7rW","","444555","","4","5","2","1","0","2022-09-14 10:37:21","2022-09-14 10:37:21");
 INSERT INTO users VALUES("41","irfan95","irfanchowdhury80@gmail.com","$2y$10$md/7IQ8URWmuztW3Tr4m3e9JUKRh2yaZm9woQTQSGejaIK/8YQLDO","","01829498634","","1","","","1","0","2023-07-09 14:55:40","2023-07-09 14:55:40");

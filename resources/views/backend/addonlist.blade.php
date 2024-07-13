@@ -24,21 +24,21 @@
             </thead>
             <tbody>
                 <tr>
-                    <td>SalePro SaaS</td>
-                    <td>It's a standalone application to start subscription business with SalePro. It is a multi tenant system and each client will have their separate database. This application comes with free landing page, unlimited custom pages, blog, payment gateway and lots more.</td>
+                    <td>WiPOS SaaS</td>
+                    <td>It's a standalone application to start subscription business with WiPOS. It is a multi tenant system and each client will have their separate database. This application comes with free landing page, unlimited custom pages, blog, payment gateway and lots more.</td>
                     <td>
                         <div class="btn-group">
-                            <a target="_blank" href="https://lion-coders.com/software/salepro-saas-pos-inventory-saas-php-script" class="btn btn-primary btn-sm" title="SalePro SaaS"><i class="dripicons-basket"></i> Buy Now</a>&nbsp;
+                            <a target="_blank" href="https://witek.id/software/wipos-saas-pos-inventory-saas-php-script" class="btn btn-primary btn-sm" title="WiPOS SaaS"><i class="dripicons-basket"></i> Buy Now</a>&nbsp;
                         </div>
                     </td>
                 </tr>
                 <tr>
-                    <td>SalePro WooCommerce</td>
-                    <td>An addon to integrate SalePro with your existing WooCommerce website.</td>
+                    <td>WiPOS WooCommerce</td>
+                    <td>An addon to integrate WiPOS with your existing WooCommerce website.</td>
                     <td>
                         <div class="btn-group">
                             @if (!\Schema::hasColumn('products', 'woocommerce_product_id'))
-                            <a target="_blank" href="https://lion-coders.com/software/salepro-saas-pos-inventory-saas-php-script" class="btn btn-primary btn-sm" title="SalePro SaaS"><i class="dripicons-basket"></i> Buy Now</a>&nbsp;&nbsp;
+                            <a target="_blank" href="https://witek.id/software/wipos-saas-pos-inventory-saas-php-script" class="btn btn-primary btn-sm" title="WiPOS SaaS"><i class="dripicons-basket"></i> Buy Now</a>&nbsp;&nbsp;
                             <button type="button" class="btn btn-info" data-toggle="modal" data-target="#installWooCommerceModal"><i class="dripicons-download"></i> Install</button>
                             @else
                             <button type="button" class="btn btn-info" data-toggle="modal" data-target="#installWooCommerceModal"><i class="dripicons-download"></i> Update</button>
