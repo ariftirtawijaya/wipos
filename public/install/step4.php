@@ -88,7 +88,7 @@ if ($object->codecheck) {
                 <strong>Note: </strong><i>If 'install' folder exists in your project folder, please delete it ('install' folder)</i>.
             </div>
             <hr>
-            <footer>Copyright &copy; lionCoders. All Rights Reserved.</footer>
+            <footer>Copyright &copy; PT. Wijaya Inspirasi Teknologi. All Rights Reserved.</footer>
         </div>
     </div>
     <script type="text/javascript" src="assets/js/jquery.min.js"></script>

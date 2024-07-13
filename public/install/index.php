@@ -15,19 +15,13 @@
             <img style="height:30px; width: 90px;" src="assets/images/logo.png" alt="Logo"/>
 	            <h1 class="text-center">WiPOS Auto Installer</h1>
 	        </header>
-            <hr>
             <div class="content text-center">
-                <h6>Please read the license agreement before installation:
-                <a href="http://codecanyon.net/licenses/standard" target="_blank">Read Agreement</a></h6>
-                <a href="step2.php" class="btn btn-primary">Accept & Continue</a><br><br>
-                <a target="_blank" href="https://www.youtube.com/watch?v=Fvi09MgBxUU" class="btn btn-info">Watch Installation Video</a>
-                <hr class="mt-lg-5">
+                <a href="step2.php" class="btn btn-primary">Start Installation</a><br><br>
                 <h6>If you need any help with installation, Please contact
                      <a href="mailto:support@witek.id">support@witek.id</a></h6>
-                <p class="text-center"><strong>$15 charge applicable</strong></p>
             </div>
             <hr>
-            <footer>Copyright &copy; lionCoders. All Rights Reserved.</footer>
+            <footer>Copyright &copy; PT. Wijaya Inspirasi Teknologi. All Rights Reserved.</footer>
 		</div>
 	</div>
 </body>

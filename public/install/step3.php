@@ -26,8 +26,8 @@
 		        ?>
 		        <form  action="step4.php" method="post">
 		            <fieldset>
-						<label>Envato Purchase Code</label>
-		                <input type='text' placeholder="random value" class="form-control" name="purchasecode">
+						<label>WiPOS Purchase Code</label>
+		                <input type='text' class="form-control" name="purchasecode">
 		                <label>Database Host (<span class='help-block'>e.g. localhost</span>)</label>
 		                <input type='text' class="form-control" name="dbhost">
 		                <label>Database Username</label>
@@ -41,7 +41,7 @@
 		        </form>
 		    </div>
 		    <hr>
-		    <footer>Copyright &copy; lionCoders. All Rights Reserved.</footer>
+		    <footer>Copyright &copy; PT. Wijaya Inspirasi Teknologi. All Rights Reserved.</footer>
 		</div>
 	</div>
 
