@@ -43,6 +43,12 @@
             @if(session()->has('delete_message'))
             <div class="alert alert-danger alert-dismissible text-center"><button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>{{ session()->get('delete_message') }}</div>
             @endif
+            @if(session()->has('message'))
+              <div class="alert alert-success alert-dismissible text-center"><button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>{!! session()->get('message') !!}</div>
+            @endif
+            @if(session()->has('not_permitted'))
+              <div class="alert alert-danger alert-dismissible text-center"><button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>{{ session()->get('not_permitted') }}</div>
+            @endif
             <form method="POST" action="{{ route('login') }}" id="login-form">
               @csrf
               <div class="form-group-material">
@@ -108,6 +114,8 @@
             }
         });
     @endif
+    
+    $("div.alert").delay(4000).slideUp(800);
 
     //switch theme code
     var theme = <?php echo json_encode($theme); ?>;
@@ -126,7 +134,7 @@
     
     if ('serviceWorker' in navigator ) {
         window.addEventListener('load', function() {
-            navigator.serviceWorker.register('/salepro/service-worker.js').then(function(registration) {
+            navigator.serviceWorker.register('/pos/service-worker.js').then(function(registration) {
                 // Registration was successful
                 console.log('ServiceWorker registration successful with scope: ', registration.scope);
             }, function(err) {
@@ -147,8 +155,8 @@
   });
 
   $('.customer-btn').on('click', function(){
-      $("input[name='name']").focus().val('shakalaka');
-      $("input[name='password']").focus().val('shakalaka');
+      $("input[name='name']").focus().val('james');
+      $("input[name='password']").focus().val('james');
   });
   // ------------------------------------------------------- //
     // Material Inputs

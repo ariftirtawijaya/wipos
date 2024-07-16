@@ -76,6 +76,11 @@ class ReturnPurchaseController extends Controller
                         ->whereDate('created_at', '>=' ,$request->input('starting_date'))
                         ->whereDate('created_at', '<=' ,$request->input('ending_date'))
                         ->count();
+        elseif(Auth::user()->role_id > 2 && config('staff_access') == 'warehouse')
+            $totalData = ReturnPurchase::where('warehouse_id', Auth::user()->warehouse_id)
+                        ->whereDate('created_at', '>=' ,$request->input('starting_date'))
+                        ->whereDate('created_at', '<=' ,$request->input('ending_date'))
+                        ->count();
         elseif($warehouse_id != 0)
             $totalData = ReturnPurchase::where('warehouse_id', $warehouse_id)
                         ->whereDate('created_at', '>=' ,$request->input('starting_date'))
@@ -103,6 +108,8 @@ class ReturnPurchaseController extends Controller
                 ->orderBy($order, $dir);
             if(Auth::user()->role_id > 2 && config('staff_access') == 'own')
                 $q = $q->where('user_id', Auth::id());
+            elseif(Auth::user()->role_id > 2 && config('staff_access') == 'warehouse')
+                $q = $q->where('warehouse_id', Auth::user()->warehouse_id);
             elseif($warehouse_id != 0)
                 $q = $q->where('warehouse_id', $warehouse_id);
             $returnss = $q->get();
@@ -140,6 +147,31 @@ class ReturnPurchaseController extends Controller
                                 ])
                                 ->count();
             }
+            elseif(Auth::user()->role_id > 2 && config('staff_access') == 'warehouse') {
+                $returnss =  $q->select('return_purchases.*')
+                            ->with('supplier', 'warehouse', 'user')
+                            ->where('return_purchases.user_id', Auth::id())
+                            ->orwhere([
+                                ['return_purchases.reference_no', 'LIKE', "%{$search}%"],
+                                ['return_purchases.warehouse_id', Auth::user()->warehouse_id]
+                            ])
+                            ->orwhere([
+                                ['suppliers.name', 'LIKE', "%{$search}%"],
+                                ['return_purchases.warehouse_id', Auth::user()->warehouse_id]
+                            ])
+                            ->get();
+
+                $totalFiltered = $q->where('return_purchases.user_id', Auth::id())
+                                ->orwhere([
+                                    ['return_purchases.reference_no', 'LIKE', "%{$search}%"],
+                                    ['return_purchases.warehouse_id', Auth::user()->warehouse_id]
+                                ])
+                                ->orwhere([
+                                    ['suppliers.name', 'LIKE', "%{$search}%"],
+                                    ['return_purchases.warehouse_id', Auth::user()->warehouse_id]
+                                ])
+                                ->count();
+            }
             else {
                 $returnss =  $q->select('return_purchases.*')
                             ->with('supplier', 'warehouse', 'user')
@@ -164,7 +196,10 @@ class ReturnPurchaseController extends Controller
                 $nestedData['warehouse'] = $returns->warehouse->name;
                 if($returns->purchase_id) {
                     $purchase_data = Purchase::select('reference_no')->find($returns->purchase_id);
-                    $nestedData['purchase_reference'] = $purchase_data->reference_no;
+                    if($purchase_data)
+                        $nestedData['purchase_reference'] = $purchase_data->reference_no;
+                    else
+                        $nestedData['purchase_reference'] = 'N/A';
                 }
                 else
                     $nestedData['purchase_reference'] = 'N/A';
@@ -205,7 +240,7 @@ class ReturnPurchaseController extends Controller
                 else
                     $currency_code = 'N/A';
 
-                $nestedData['return'] = array( '[ "'.date(config('date_format'), strtotime($returns->created_at->toDateString())).'"', ' "'.$returns->reference_no.'"', ' "'.$returns->warehouse->name.'"', ' "'.$returns->warehouse->phone.'"', ' "'.$returns->warehouse->address.'"', ' "'.$supplier->name.'"', ' "'.$supplier->company_name.'"', ' "'.$supplier->email.'"', ' "'.$supplier->phone_number.'"', ' "'.$supplier->address.'"', ' "'.$supplier->city.'"', ' "'.$returns->id.'"', ' "'.$returns->total_tax.'"', ' "'.$returns->total_discount.'"', ' "'.$returns->total_cost.'"', ' "'.$returns->order_tax.'"', ' "'.$returns->order_tax_rate.'"', ' "'.$returns->grand_total.'"', ' "'.preg_replace('/[\n\r]/', "<br>", $returns->return_note).'"', ' "'.preg_replace('/[\n\r]/', "<br>", $returns->staff_note).'"', ' "'.$returns->user->name.'"', ' "'.$returns->user->email.'"', ' "'.$nestedData['purchase_reference'].'"', ' "'.$returns->document.'"', ' "'.$currency_code.'"', ' "'.$returns->exchange_rate.'"]'
+                $nestedData['return'] = array( '[ "'.date(config('date_format'), strtotime($returns->created_at->toDateString())).'"', ' "'.$returns->reference_no.'"', ' "'.$returns->warehouse->name.'"', ' "'.$returns->warehouse->phone.'"', ' "'.preg_replace('/[\n\r]/', "<br>", $returns->warehouse->address).'"', ' "'.$supplier->name.'"', ' "'.$supplier->company_name.'"', ' "'.$supplier->email.'"', ' "'.$supplier->phone_number.'"', ' "'.preg_replace('/[\n\r]/', "<br>", $supplier->address).'"', ' "'.$supplier->city.'"', ' "'.$returns->id.'"', ' "'.$returns->total_tax.'"', ' "'.$returns->total_discount.'"', ' "'.$returns->total_cost.'"', ' "'.$returns->order_tax.'"', ' "'.$returns->order_tax_rate.'"', ' "'.$returns->grand_total.'"', ' "'.preg_replace('/[\n\r]/', "<br>", $returns->return_note).'"', ' "'.preg_replace('/[\n\r]/', "<br>", $returns->staff_note).'"', ' "'.$returns->user->name.'"', ' "'.$returns->user->email.'"', ' "'.$nestedData['purchase_reference'].'"', ' "'.$returns->document.'"', ' "'.$currency_code.'"', ' "'.$returns->exchange_rate.'"]'
                 );
                 $data[] = $nestedData;
             }

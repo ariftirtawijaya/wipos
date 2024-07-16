@@ -66,7 +66,9 @@ class Kernel extends HttpKernel
         'active' => \App\Http\Middleware\Active::class,
         'common' => \App\Http\Middleware\Common::class,
         'superadminauth' => \App\Http\Middleware\SuperAdminAuth::class,
+        'customerauth' => \Modules\Ecommerce\Http\Middleware\CustomerAuth::class,
         'cors' => \App\Http\Middleware\Cors::class,
+        'checkSmsBalance' => \App\Http\Middleware\CheckSmsBalance::class,
     ];
 
     /**

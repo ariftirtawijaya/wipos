@@ -71,8 +71,10 @@
             @if($sale_index_permission_active || $gift_card_permission_active || $coupon_permission_active || $delivery_permission_active)
             <li><a href="#sale" aria-expanded="false" data-toggle="collapse"> <i class="dripicons-cart"></i><span>{{trans('file.Sale')}}</span></a>
             <ul id="sale" class="collapse list-unstyled ">
-                @if($sale_add_permission_active)
+                @if($sale_index_permission_active)
                 <li id="sale-list-menu"><a href="{{route('sales.index')}}">{{trans('file.Sale List')}}</a></li>
+                @endif
+                @if($sale_add_permission_active)
                 <li><a href="{{route('sale.pos')}}">POS</a></li>
                 <li id="sale-create-menu"><a href="{{route('sales.create')}}">{{trans('file.Add Sale')}}</a></li>
                 <li id="sale-import-menu"><a href="{{url('sales/sale_by_csv')}}">{{trans('file.Import Sale By CSV')}}</a></li>
@@ -478,18 +480,20 @@
             </ul>
             </li>
             @endif
-            @if(!config('database.connections.saleprosaas_landlord'))
-            <li><a href="{{url('addon-list')}}" id="addon-list"> <i class="dripicons-flag"></i><span>{{trans('file.Addons')}}</span></a></li>
-            @if (\Schema::hasColumn('products', 'woocommerce_product_id'))
-                <li><a href="{{route('woocommerce.index')}}"> <i class="fa fa-wordpress"></i><span>WooCommerce</span></a></li>
-            @endif
-            @if(in_array('ecommerce',explode(',',$general_setting->modules)))
-            <li><a href="#ecommerce" aria-expanded="false" data-toggle="collapse"> <i class="dripicons-shopping-bag"></i><span>{{trans('file.ecommerce')}}</span></a>
-                <ul id="ecommerce" class="collapse list-unstyled ">
-                    @include('ecommerce::backend.layout.sidebar-menu')
-                </ul>
-            </li>
-            @endif
+            @if(\Auth::user()->role_id != 5)
+                @if(!config('database.connections.saleprosaas_landlord'))
+                    <li><a href="{{url('addon-list')}}" id="addon-list"> <i class="dripicons-flag"></i><span>{{trans('file.Addons')}}</span></a></li>
+                @endif
+                @if (in_array('woocommerce',explode(',',$general_setting->modules)))
+                    <li><a href="{{route('woocommerce.index')}}"> <i class="fa fa-wordpress"></i><span>WooCommerce</span></a></li>
+                @endif
+                @if(in_array('ecommerce',explode(',',$general_setting->modules)))
+                <li><a href="#ecommerce" aria-expanded="false" data-toggle="collapse"> <i class="dripicons-shopping-bag"></i><span>eCommerce</span></a>
+                    <ul id="ecommerce" class="collapse list-unstyled ">
+                        @include('ecommerce::backend.layout.sidebar-menu')
+                    </ul>
+                </li>
+                @endif
             @endif
             <li><a href="#setting" aria-expanded="false" data-toggle="collapse"> <i class="dripicons-gear"></i><span>{{trans('file.settings')}}</span></a>
                 <ul id="setting" class="collapse list-unstyled ">
@@ -534,6 +538,7 @@
                     ?>
                     @if($role->id <= 2)
                     <li id="role-menu"><a href="{{route('role.index')}}">{{trans('file.Role Permission')}}</a></li>
+                    <li><a href="{{route('smstemplates.index')}}">{{trans('file.SMS Template')}}</a></li>
                     @if($custom_field_permission_active)
                     <li id="custom-field-list-menu"><a href="{{route('custom-fields.index')}}">{{trans('file.Custom Field List')}}</a></li>
                     @endif
@@ -598,9 +603,15 @@
                     @if($hrm_setting_permission_active)
                     <li id="hrm-setting-menu"><a href="{{route('setting.hrm')}}"> {{trans('file.HRM Setting')}}</a></li>
                     @endif
+                    <li id="languages"><a href="{{url('languages/')}}"> {{trans('file.Languages')}}</a></li>
                 </ul>
             </li>
             @if(Auth::user()->role_id != 5)
-            <li><a target="_blank" href="{{url('/documentation')}}"> <i class="dripicons-information"></i><span>{{trans('file.Documentation')}}</span></a></li>
+            <li><a href="#documentation" aria-expanded="false" data-toggle="collapse"> <i class="dripicons-information"></i><span>{{trans('file.Documentation')}}</span></a>
+                <ul id="documentation" class="collapse list-unstyled ">
+                    <li><a target="_blank" href="{{url('/documentation')}}"><span>SalePro</span></a></li>
+                    <li><a target="_blank" href="{{url('/ecommerce-documentation')}}"><span>SalePro eCommerce</span></a></li>
+                </ul>
+            </li>
             @endif
         </ul>

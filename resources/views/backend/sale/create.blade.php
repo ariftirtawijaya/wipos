@@ -2,6 +2,9 @@
 @if(session()->has('not_permitted'))
   <div class="alert alert-danger alert-dismissible text-center"><button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>{{ session()->get('not_permitted') }}</div>
 @endif
+@if(session()->has('error'))
+  <div class="alert alert-danger alert-dismissible text-center"><button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>{{ session()->get('error') }}</div>
+@endif
 <section class="forms">
     <div class="container-fluid">
         <div class="row">
@@ -360,6 +363,12 @@
                                         </div>
                                         <div class="col-md-4">
                                             <div class="form-group">
+                                                <label>{{trans('file.Payment Receiver')}}</label>
+                                                <input type="text" name="payment_receiver" class="form-control" id="payment-receiver"/>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-group">
                                                 <label>{{trans('file.Change')}}</label>
                                                 <p id="change" class="ml-2">{{number_format(0, $general_setting->decimal, '.', '')}}</p>
                                             </div>
@@ -463,6 +472,15 @@
                                 <label>{{trans('file.Unit Discount')}}</label>
                                 <input type="number" name="edit_discount" class="form-control numkey">
                             </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>{{trans('file.Price Option')}}</strong> </label>
+                                    <div class="input-group">
+                                      <select class="form-control selectpicker" name="price_option" class="price-option">
+                                      </select>
+                                  </div>
+                                </div>
+                            </div>
                             <div class="col-md-4 form-group">
                                 <label>{{trans('file.Unit Price')}}</label>
                                 <input type="number" name="edit_unit_price" class="form-control numkey" step="any">
@@ -487,6 +505,10 @@
                                 <label>{{trans('file.Product Unit')}}</label>
                                 <select name="edit_unit" class="form-control selectpicker">
                                 </select>
+                            </div>
+                            <div class="col-md-4 form-group">
+                                <label>{{trans('file.Cost')}}</label>
+                                <p id="product-cost"></p>
                             </div>
                         </div>
                         <button type="button" name="update_btn" class="btn btn-primary">{{trans('file.update')}}</button>
@@ -527,12 +549,12 @@
                     <input type="text" name="phone_number" required class="form-control">
                 </div>
                 <div class="form-group">
-                    <label>{{trans('file.Address')}} *</label>
-                    <input type="text" name="address" required class="form-control">
+                    <label>{{trans('file.Address')}}</label>
+                    <input type="text" name="address" class="form-control">
                 </div>
                 <div class="form-group">
-                    <label>{{trans('file.City')}} *</label>
-                    <input type="text" name="city" required class="form-control">
+                    <label>{{trans('file.City')}}</label>
+                    <input type="text" name="city" class="form-control">
                 </div>
                 <div class="form-group">
                     <input type="hidden" name="pos" value="1">
@@ -664,6 +686,8 @@ var qty_list = [];
 
 // array data with selection
 var product_price = [];
+var wholesale_price = [];
+var cost = [];
 var product_discount = [];
 var tax_rate = [];
 var tax_name = [];
@@ -789,6 +813,7 @@ $("#myTable").on('input', '.qty', function() {
 $("table.order-list tbody").on("click", ".ibtnDel", function(event) {
     rowindex = $(this).closest('tr').index();
     product_price.splice(rowindex, 1);
+    wholesale_price.splice(rowindex, 1);
     product_discount.splice(rowindex, 1);
     tax_rate.splice(rowindex, 1);
     tax_name.splice(rowindex, 1);
@@ -863,6 +888,10 @@ $('button[name="update_btn"]').on("click", function() {
     //checkQuantity(edit_qty, false);
 });
 
+$("select[name=price_option]").on("change", function () {
+    $("#editModal input[name=edit_unit_price]").val($(this).val());
+});
+
 $("#myTable").on("change", ".batch-no", function () {
     rowindex = $(this).closest('tr').index();
     var product_id = $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.product-id').val();
@@ -905,7 +934,7 @@ function isCashRegisterAvailable(warehouse_id) {
 }
 
 function productSearch(data) {
-    var product_info = data.split(" ");
+    var product_info = data.split(" (");
     var code = product_info[0];
     var pre_qty = 0;
     $(".product-code").each(function(i) {
@@ -980,6 +1009,11 @@ function productSearch(data) {
                 else {
                     product_price.splice(rowindex, 0, parseFloat(data[2] * currency['exchange_rate']) + parseFloat(data[2] * currency['exchange_rate'] * customer_group_rate));
                 }
+                if(data[16])
+                    wholesale_price.splice(rowindex, 0, parseFloat(data[16] * currency['exchange_rate']) + parseFloat(data[16] * currency['exchange_rate'] * customer_group_rate));
+                else
+                    wholesale_price.splice(rowindex, 0, '{{number_format(0, $general_setting->decimal, '.', '')}}');
+                cost.splice(rowindex, 0, parseFloat(data[17] * currency['exchange_rate']));
                 product_discount.splice(rowindex, 0, '{{number_format(0, $general_setting->decimal, '.', '')}}');
                 tax_rate.splice(rowindex, 0, parseFloat(data[3]));
                 tax_name.splice(rowindex, 0, data[4]);
@@ -990,12 +1024,21 @@ function productSearch(data) {
                 is_imei.splice(rowindex, 0, data[13]);
                 is_variant.splice(rowindex, 0, data[14]);
                 checkQuantity(data[15], true);
-                if(data[13]) {
+                if(data[13] || data[16]) {
+                    populatePriceOption();
                     $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.edit-product').click();
                 }
             }
         }
     });
+}
+
+function populatePriceOption() {
+    $('#editModal select[name=price_option]').empty();
+    $('#editModal select[name=price_option]').append('<option value="'+ product_price[rowindex] +'">'+ product_price[rowindex] +'</option>');
+    if(wholesale_price[rowindex] > 0)
+        $('#editModal select[name=price_option]').append('<option value="'+ wholesale_price[rowindex] +'">'+ wholesale_price[rowindex] +'</option>');
+    $('.selectpicker').selectpicker('refresh');
 }
 
 function edit()
@@ -1007,7 +1050,8 @@ function edit()
         htmlText = '<div class="col-md-12 form-group imei-section"><label>IMEI or Serial Numbers</label><input type="text" name="imei_numbers" value="'+imeiNumbers+'" class="form-control imei_number" placeholder="Type imei or serial numbers and separate them by comma. Example:1001,2001" step="any"></div>';
         $("#editModal .modal-element").append(htmlText);
     }
-
+    populatePriceOption();
+    $("#product-cost").text(cost[rowindex]);
     var row_product_name = $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('td:nth-child(1)').text();
     var row_product_code = $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('td:nth-child(2)').text();
     $('#modal_header').text(row_product_name + '(' + row_product_code + ')');

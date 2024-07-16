@@ -25,6 +25,7 @@ use Auth;
 use App\Models\User;
 use App\Models\ProductVariant;
 use App\Models\ProductBatch;
+use App\Traits\StaffAccess;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Illuminate\Support\Facades\Validator;
@@ -32,7 +33,7 @@ use App\Traits\TenantInfo;
 
 class PurchaseController extends Controller
 {
-    use TenantInfo;
+    use TenantInfo, StaffAccess;
 
     public function index(Request $request)
     {
@@ -97,8 +98,8 @@ class PurchaseController extends Controller
         $payment_status = $request->input('payment_status');
 
         $q = Purchase::whereDate('created_at', '>=' ,$request->input('starting_date'))->whereDate('created_at', '<=' ,$request->input('ending_date'));
-        if(Auth::user()->role_id > 2 && config('staff_access') == 'own')
-            $q = $q->where('user_id', Auth::id());
+        //check staff access
+        $this->staffAccessCheck($q);
         if($warehouse_id)
             $q = $q->where('warehouse_id', $warehouse_id);
         if($purchase_status)
@@ -132,8 +133,8 @@ class PurchaseController extends Controller
                 ->offset($start)
                 ->limit($limit)
                 ->orderBy($order, $dir);
-            if(Auth::user()->role_id > 2 && config('staff_access') == 'own')
-                $q = $q->where('user_id', Auth::id());
+            //check staff access
+            $this->staffAccessCheck($q);
             if($warehouse_id)
                 $q = $q->where('warehouse_id', $warehouse_id);
             if($purchase_status)
@@ -161,6 +162,26 @@ class PurchaseController extends Controller
                             ['suppliers.name', 'LIKE', "%{$search}%"],
                             ['purchases.user_id', Auth::id()]
                         ]);
+                foreach ($field_names as $key => $field_name) {
+                    $q = $q->orwhere([
+                            ['purchases.user_id', Auth::id()],
+                            ['purchases.' . $field_name, 'LIKE', "%{$search}%"]
+                        ]);
+                }      
+                $purchases = $q->select('purchases.*')->get();
+                $totalFiltered = $q->count();
+            }
+            elseif(Auth::user()->role_id > 2 && config('staff_access') == 'warehouse') {
+                $q =  $q->with('supplier', 'warehouse')
+                ->where('purchases.user_id', Auth::id())
+                ->orwhere([
+                    ['purchases.reference_no', 'LIKE', "%{$search}%"],
+                    ['purchases.warehouse_id', Auth::user()->warehouse_id]
+                ])
+                ->orwhere([
+                    ['suppliers.name', 'LIKE', "%{$search}%"],
+                    ['purchases.warehouse_id', Auth::user()->warehouse_id]
+                ]);
                 foreach ($field_names as $key => $field_name) {
                     $q = $q->orwhere([
                             ['purchases.user_id', Auth::id()],
@@ -238,6 +259,10 @@ class PurchaseController extends Controller
                                 <li>
                                     <button type="button" class="btn btn-link view"><i class="fa fa-eye"></i> '.trans('file.View').'</button>
                                 </li>';
+                if(in_array("purchases-add", $request['all_permission']))
+                    $nestedData['options'] .= '<li>
+                        <a href="'.route('purchase.duplicate', $purchase->id).'" class="btn btn-link"><i class="fa fa-copy"></i> '.trans('file.Duplicate').'</a>
+                        </li>';
                 if(in_array("purchases-edit", $request['all_permission']))
                     $nestedData['options'] .= '<li>
                         <a href="'.route('purchases.edit', $purchase->id).'" class="btn btn-link"><i class="dripicons-document-edit"></i> '.trans('file.edit').'</a>
@@ -270,7 +295,7 @@ class PurchaseController extends Controller
                 else
                     $currency_code = 'N/A';
 
-                $nestedData['purchase'] = array( '[ "'.date(config('date_format'), strtotime($purchase->created_at->toDateString())).'"', ' "'.$purchase->reference_no.'"', ' "'.$purchase_status.'"',  ' "'.$purchase->id.'"', ' "'.$purchase->warehouse->name.'"', ' "'.$purchase->warehouse->phone.'"', ' "'.preg_replace('/\s+/S', " ", $purchase->warehouse->address).'"', ' "'.$supplier->name.'"', ' "'.$supplier->company_name.'"', ' "'.$supplier->email.'"', ' "'.$supplier->phone_number.'"', ' "'.$supplier->address.'"', ' "'.$supplier->city.'"', ' "'.$purchase->total_tax.'"', ' "'.$purchase->total_discount.'"', ' "'.$purchase->total_cost.'"', ' "'.$purchase->order_tax.'"', ' "'.$purchase->order_tax_rate.'"', ' "'.$purchase->order_discount.'"', ' "'.$purchase->shipping_cost.'"', ' "'.$purchase->grand_total.'"', ' "'.$purchase->paid_amount.'"', ' "'.preg_replace('/\s+/S', " ", $purchase->note).'"', ' "'.$user->name.'"', ' "'.$user->email.'"', ' "'.$purchase->document.'"', ' "'.$currency_code.'"', ' "'.$purchase->exchange_rate.'"]'
+                $nestedData['purchase'] = array( '[ "'.date(config('date_format'), strtotime($purchase->created_at->toDateString())).'"', ' "'.$purchase->reference_no.'"', ' "'.$purchase_status.'"',  ' "'.$purchase->id.'"', ' "'.$purchase->warehouse->name.'"', ' "'.$purchase->warehouse->phone.'"', ' "'.preg_replace('/\s+/S', " ", $purchase->warehouse->address).'"', ' "'.$supplier->name.'"', ' "'.$supplier->company_name.'"', ' "'.$supplier->email.'"', ' "'.$supplier->phone_number.'"', ' "'.preg_replace('/\s+/S', " ", $supplier->address).'"', ' "'.$supplier->city.'"', ' "'.$purchase->total_tax.'"', ' "'.$purchase->total_discount.'"', ' "'.$purchase->total_cost.'"', ' "'.$purchase->order_tax.'"', ' "'.$purchase->order_tax_rate.'"', ' "'.$purchase->order_discount.'"', ' "'.$purchase->shipping_cost.'"', ' "'.$purchase->grand_total.'"', ' "'.$purchase->paid_amount.'"', ' "'.preg_replace('/\s+/S', " ", $purchase->note).'"', ' "'.$user->name.'"', ' "'.$user->email.'"', ' "'.$purchase->document.'"', ' "'.$currency_code.'"', ' "'.$purchase->exchange_rate.'"]'
                 );
                 $data[] = $nestedData;
             }
@@ -289,7 +314,15 @@ class PurchaseController extends Controller
         $role = Role::find(Auth::user()->role_id);
         if($role->hasPermissionTo('purchases-add')){
             $lims_supplier_list = Supplier::where('is_active', true)->get();
-            $lims_warehouse_list = Warehouse::where('is_active', true)->get();
+            if(Auth::user()->role_id > 2) {
+                $lims_warehouse_list = Warehouse::where([
+                    ['is_active', true],
+                    ['id', Auth::user()->warehouse_id]
+                ])->get();
+            }
+            else {
+                $lims_warehouse_list = Warehouse::where('is_active', true)->get();
+            }
             $lims_tax_list = Tax::where('is_active', true)->get();
             $lims_product_list_without_variant = $this->productWithoutVariant();
             $lims_product_list_with_variant = $this->productWithVariant();
@@ -787,6 +820,29 @@ class PurchaseController extends Controller
                 $currency_exchange_rate = 1;
             $custom_fields = CustomField::where('belongs_to', 'purchase')->get();
             return view('backend.purchase.edit', compact('lims_warehouse_list', 'lims_supplier_list', 'lims_product_list_without_variant', 'lims_product_list_with_variant', 'lims_tax_list', 'lims_purchase_data', 'lims_product_purchase_data', 'currency_exchange_rate', 'custom_fields'));
+        }
+        else
+            return redirect()->back()->with('not_permitted', 'Sorry! You are not allowed to access this module');
+
+    }
+
+    public function duplicate($id)
+    {
+        $role = Role::find(Auth::user()->role_id);
+        if($role->hasPermissionTo('purchases-add')){
+            $lims_supplier_list = Supplier::where('is_active', true)->get();
+            $lims_warehouse_list = Warehouse::where('is_active', true)->get();
+            $lims_tax_list = Tax::where('is_active', true)->get();
+            $lims_product_list_without_variant = $this->productWithoutVariant();
+            $lims_product_list_with_variant = $this->productWithVariant();
+            $lims_purchase_data = Purchase::find($id);
+            $lims_product_purchase_data = ProductPurchase::where('purchase_id', $id)->get();
+            if($lims_purchase_data->exchange_rate)
+                $currency_exchange_rate = $lims_purchase_data->exchange_rate;
+            else
+                $currency_exchange_rate = 1;
+            $custom_fields = CustomField::where('belongs_to', 'purchase')->get();
+            return view('backend.purchase.duplicate', compact('lims_warehouse_list', 'lims_supplier_list', 'lims_product_list_without_variant', 'lims_product_list_with_variant', 'lims_tax_list', 'lims_purchase_data', 'lims_product_purchase_data', 'currency_exchange_rate', 'custom_fields'));
         }
         else
             return redirect()->back()->with('not_permitted', 'Sorry! You are not allowed to access this module');

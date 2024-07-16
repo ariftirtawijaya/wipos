@@ -9,74 +9,84 @@
 
 
 <section>
-    <div class="container-fluid">
-        <div class="card">
-            <div class="card-header mt-2">
-                <h3 class="text-center">{{trans('file.Sale List')}}</h3>
-            </div>
-            {!! Form::open(['route' => 'sales.index', 'method' => 'get']) !!}
-            <div class="row ml-1 mt-2">
-                <div class="col-md-3">
-                    <div class="form-group">
-                        <label><strong>{{trans('file.Date')}}</strong></label>
-                        <input type="text" class="daterangepicker-field form-control" value="{{$starting_date}} To {{$ending_date}}" required />
-                        <input type="hidden" name="starting_date" value="{{$starting_date}}" />
-                        <input type="hidden" name="ending_date" value="{{$ending_date}}" />
-                    </div>
-                </div>
-                <div class="col-md-3 @if(\Auth::user()->role_id > 2){{'d-none'}}@endif">
-                    <div class="form-group">
-                        <label><strong>{{trans('file.Warehouse')}}</strong></label>
-                        <select id="warehouse_id" name="warehouse_id" class="selectpicker form-control" data-live-search="true" data-live-search-style="begins" >
-                            <option value="0">{{trans('file.All Warehouse')}}</option>
-                            @foreach($lims_warehouse_list as $warehouse)
-                                <option value="{{$warehouse->id}}">{{$warehouse->name}}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="form-group">
-                        <label><strong>{{trans('file.Sale Status')}}</strong></label>
-                        <select id="sale-status" class="form-control" name="sale_status">
-                            <option value="0">{{trans('file.All')}}</option>
-                            <option value="1">{{trans('file.Completed')}}</option>
-                            <option value="2">{{trans('file.Pending')}}</option>
-                            <option value="4">{{trans('file.Returned')}}</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="form-group">
-                        <label><strong>{{trans('file.Payment Status')}}</strong></label>
-                        <select id="payment-status" class="form-control" name="payment_status">
-                            <option value="0">{{trans('file.All')}}</option>
-                            <option value="1">{{trans('file.Pending')}}</option>
-                            <option value="2">{{trans('file.Due')}}</option>
-                            <option value="3">{{trans('file.Partial')}}</option>
-                            <option value="4">{{trans('file.Paid')}}</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="col-md-2 mt-3">
-                    <div class="form-group">
-                        <button class="btn btn-primary" id="filter-btn" type="submit">{{trans('file.submit')}}</button>
-                    </div>
-                </div>
-            </div>
-            {!! Form::close() !!}
-        </div>
+    <div class="container-fluid"> 
         @if(in_array("sales-add", $all_permission))
             <a href="{{route('sales.create')}}" class="btn btn-info add-sale-btn"><i class="dripicons-plus"></i> {{trans('file.Add Sale')}}</a>&nbsp;
             <a href="{{url('sales/sale_by_csv')}}" class="btn btn-primary add-sale-btn"><i class="dripicons-copy"></i> {{trans('file.Import Sale')}}</a>
         @endif
+        <div class="card mt-3">
+            <h3 class="text-center mt-3">{{trans('file.Filter Sales')}}</h3>
+            <div class="card-body">
+                {!! Form::open(['route' => 'sales.index', 'method' => 'get']) !!}
+                <div class="row mt-2">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label><strong>{{trans('file.Date')}}</strong></label>
+                            <input type="text" class="daterangepicker-field form-control" value="{{$starting_date}} To {{$ending_date}}" required />
+                            <input type="hidden" name="starting_date" value="{{$starting_date}}" />
+                            <input type="hidden" name="ending_date" value="{{$ending_date}}" />
+                        </div>
+                    </div>
+                    <div class="col-md-3 @if(\Auth::user()->role_id > 2){{'d-none'}}@endif">
+                        <div class="form-group">
+                            <label><strong>{{trans('file.Warehouse')}}</strong></label>
+                            <select id="warehouse_id" name="warehouse_id" class="selectpicker form-control" data-live-search="true" data-live-search-style="begins" >
+                                <option value="0">{{trans('file.All Warehouse')}}</option>
+                                @foreach($lims_warehouse_list as $warehouse)
+                                    <option value="{{$warehouse->id}}">{{$warehouse->name}}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label><strong>{{trans('file.Sale Status')}}</strong></label>
+                            <select id="sale-status" class="form-control" name="sale_status">
+                                <option value="0">{{trans('file.All')}}</option>
+                                <option value="1">{{trans('file.Completed')}}</option>
+                                <option value="2">{{trans('file.Pending')}}</option>
+                                <option value="4">{{trans('file.Returned')}}</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label><strong>{{trans('file.Payment Status')}}</strong></label>
+                            <select id="payment-status" class="form-control" name="payment_status">
+                                <option value="0">{{trans('file.All')}}</option>
+                                <option value="1">{{trans('file.Pending')}}</option>
+                                <option value="2">{{trans('file.Due')}}</option>
+                                <option value="3">{{trans('file.Partial')}}</option>
+                                <option value="4">{{trans('file.Paid')}}</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2 @if(!in_array('ecommerce',explode(',',$general_setting->modules))) d-none @endif">
+                        <div class="form-group">
+                            <label><strong>{{trans('file.Sale Type')}}</strong></label>
+                            <select id="sale-type" class="form-control" name="sale_type">
+                                <option value="0">{{trans('file.All')}}</option>
+                                <option value="pos">{{trans('file.POS')}}</option>
+                                <option value="online">{{trans('file.eCommerce')}}</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2 mt-3">
+                        <div class="form-group">
+                            <button class="btn btn-primary" id="filter-btn" type="submit">{{trans('file.submit')}}</button>
+                        </div>
+                    </div>
+                </div>
+                {!! Form::close() !!}
+            </div>
+        </div>
     </div>
     <div class="table-responsive">
         <table id="sale-table" class="table sale-list" style="width: 100%">
             <thead>
                 <tr>
                     <th class="not-exported"></th>
-                    <th>{{trans('file.Date')}}</th>
+                    <th>{{trans('file.date')}}</th>
                     <th>{{trans('file.reference')}}</th>
                     <th>{{trans('file.Biller')}}</th>
                     <th>{{trans('file.customer')}}</th>
@@ -132,10 +142,13 @@
                     <div class="col-md-6 d-print-none">
                         <button type="button" id="close-btn" data-dismiss="modal" aria-label="Close" class="close"><span aria-hidden="true"><i class="dripicons-cross"></i></span></button>
                     </div>
-                    <div class="col-md-12">
-                        <h3 id="exampleModalLabel" class="modal-title text-center container-fluid">{{$general_setting->site_title}}</h3>
+                    <div class="col-md-4 text-left">
+                        <img src="{{url('logo', $general_setting->site_logo)}}" width="90px;">
                     </div>
-                    <div class="col-md-12 text-center">
+                    <div class="col-md-4 text-center">
+                        <h3 id="exampleModalLabel" class="modal-title container-fluid">{{$general_setting->site_title}}</h3>
+                    </div>
+                    <div class="col-md-4 text-right">
                         <i style="font-size: 15px;">{{trans('file.Sale Details')}}</i>
                     </div>
                 </div>
@@ -239,6 +252,10 @@
                                 @endif
                             </select>
                         </div>
+                        <div class="col-md-6">
+                            <label>{{trans('file.Payment Receiver')}}</label>
+                            <input type="text" name="payment_receiver" class="form-control">
+                        </div>
                     </div>
                     <div class="gift-card form-group">
                         <label> {{trans('file.Gift Card')}} *</label>
@@ -340,6 +357,10 @@
                                 <option value="7">Points</option>
                                 @endif
                             </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label>{{trans('file.Payment Receiver')}}</label>
+                            <input type="text" name="payment_receiver" class="form-control">
                         </div>
                     </div>
                     <div class="gift-card form-group">
@@ -451,6 +472,37 @@
     </div>
 </div>
 
+<div id="send-sms" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true" class="modal fade text-left">
+    <div role="document" class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 id="exampleModalLabel" class="modal-title">{{trans('file.Send SMS')}}</h5>
+                <button type="button" data-dismiss="modal" aria-label="Close" class="close"><span aria-hidden="true"><i class="dripicons-cross"></i></span></button>
+            </div>
+            <div class="modal-body">
+                <form action="{{ route('sale.sendsms') }}" method="post">
+                    @csrf
+                    <div class="row">
+                        <input type="hidden" name="customer_id">
+                        <input type="hidden" name="reference_no">
+                        <input type="hidden" name="sale_status">
+                        <input type="hidden" name="payment_status">
+                        <div class="col-md-6 mt-1">
+                            <label>{{trans('file.SMS Template')}}</label>
+                            <select name="template_id" class="form-control">                            
+                                <option value="">Select Template</option>
+                                @foreach($smsTemplates as $template)
+                                <option value="{{ $template->id }}">{{ $template->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary mt-2">{{trans('file.submit')}}</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -501,6 +553,7 @@
     var warehouse_id = <?php echo json_encode($warehouse_id); ?>;
     var sale_status = <?php echo json_encode($sale_status); ?>;
     var payment_status = <?php echo json_encode($payment_status); ?>;
+    var sale_type = <?php echo json_encode($sale_type); ?>;
     var balance = <?php echo json_encode($balance) ?>;
     var expired_date = <?php echo json_encode($expired_date) ?>;
     var current_date = <?php echo json_encode(date("Y-m-d")) ?>;
@@ -522,6 +575,7 @@
     $("#warehouse_id").val(warehouse_id);
     $("#sale-status").val(sale_status);
     $("#payment-status").val(payment_status);
+    $("#sale-type").val(sale_type);
 
     $(".daterangepicker-field").daterangepicker({
       callback: function(startDate, endDate, period){
@@ -553,15 +607,18 @@
 
     $(document).on("click", "#print-btn", function() {
         var divContents = document.getElementById("sale-details").innerHTML;
+        //console.log(divContents);
         var a = window.open('');
         a.document.write('<html>');
         a.document.write('<body>');
-        a.document.write('<style>body{font-family: sans-serif;line-height: 1.15;-webkit-text-size-adjust: 100%;}.d-print-none{display:none}.text-center{text-align:center}.row{width:100%;margin-right: -15px;margin-left: -15px;}.col-md-12{width:100%;display:block;padding: 5px 15px;}.col-md-6{width: 50%;float:left;padding: 5px 15px;}table{width:100%;margin-top:30px;}th{text-aligh:left}td{padding:10px}table,th,td{border: 1px solid black; border-collapse: collapse;}</style><style>@media print {.modal-dialog { max-width: 1000px;} }</style>');
+        a.document.write('<style>body{line-height: 1.15;-webkit-text-size-adjust: 100%;}.d-print-none{display:none}.text-left{text-align:left}.text-center{text-align:center}.text-right{text-align:right}.row{width:100%;margin-right: -15px;margin-left: -15px;}.col-md-12{width:100%;display:block;padding: 5px 15px;}.col-md-6{width: 50%;float:left;padding: 5px 15px;}table{width:100%;margin-top:30px;}th{text-aligh:left}td{padding:10px}table,th,td{border: 1px solid black; border-collapse: collapse;}</style><style>@media print {.modal-dialog { max-width: 1000px;} }</style>');
         a.document.write(divContents);
         a.document.write('</body></html>');
         a.document.close();
-        setTimeout(function(){a.close();},10);
         a.print();
+        setTimeout(function(){a.close();},10);
+        //setTimeout(function(){a.print();},20);
+        //a.print();
     });
 
     $(document).on("click", "table.sale-list tbody .add-payment", function() {
@@ -586,6 +643,7 @@
         deposit = $('table.sale-list tbody tr:nth-child(' + (rowindex + 1) + ')').find('.deposit').val();
         var id = $(this).data('id').toString();
         $.get('sales/getpayment/' + id, function(data) {
+            console.log(data);
             $(".payment-list tbody").remove();
             var newBody = $("<tbody>");
             payment_date  = data[0];
@@ -600,6 +658,7 @@
             paying_amount = data[9];
             account_name = data[10];
             account_id = data[11];
+            payment_receiver = data[12];
 
             $.each(payment_date, function(index) {
                 var newRow = $("<tr>");
@@ -669,6 +728,7 @@
                 $('#edit-payment .change').text(change[index]);
                 $('input[name="edit_amount"]').val(paid_amount[index]);
                 $('textarea[name="edit_payment_note"]').val(payment_note[index]);
+                $('input[name="payment_receiver"]').val(payment_receiver[index]);
                 return false;
             }
         });
@@ -866,7 +926,8 @@
                 ending_date: ending_date,
                 warehouse_id: warehouse_id,
                 sale_status: sale_status,
-                payment_status: payment_status
+                sale_type: sale_type,
+                payment_status: payment_status, 
             },
             dataType: "json",
             type:"post"
@@ -875,7 +936,6 @@
               return 'row_'+data['id'];
         },*/
         "createdRow": function( row, data, dataIndex ) {
-            //alert(data);
             $(row).addClass('sale-link');
             $(row).attr('data-sale', data['sale']);
         },
@@ -981,7 +1041,8 @@
                         $(':checkbox:checked').each(function(i){
                             if(i){
                                 var sale = $(this).closest('tr').data('sale');
-                                sale_id[i-1] = sale[13];
+                                if(sale)
+                                    sale_id[i-1] = sale[13];
                             }
                         });
                         if(sale_id.length && confirm("Are you sure want to delete?")) {
@@ -1037,7 +1098,7 @@
     function saleDetails(sale){
         $("#sale-details input[name='sale_id']").val(sale[13]);
 
-        var htmltext = '<strong>{{trans("file.Date")}}: </strong>'+sale[0]+'<br><strong>{{trans("file.reference")}}: </strong>'+sale[1]+'<br><strong>{{trans("file.Warehouse")}}: </strong>'+sale[27]+'<br><strong>{{trans("file.Sale Status")}}: </strong>'+sale[2]+'<br><strong>{{trans("file.Currency")}}: </strong>'+sale[31];
+        var htmltext = '<strong>{{trans("file.date")}}: </strong>'+sale[0]+'<br><strong>{{trans("file.reference")}}: </strong>'+sale[1]+'<br><strong>{{trans("file.Warehouse")}}: </strong>'+sale[27]+'<br><strong>{{trans("file.Sale Status")}}: </strong>'+sale[2]+'<br><strong>{{trans("file.Currency")}}: </strong>'+sale[31];
         if(sale[32])
             htmltext += '<br><strong>{{trans("file.Exchange Rate")}}: </strong>'+sale[32]+'<br>';
         else
@@ -1065,7 +1126,7 @@
                 cols += '<td>' + name_code[index] + '</td>';
                 cols += '<td>' + batch_no[index] + '</td>';
                 cols += '<td>' + qty[index] + ' ' + unit_code[index] + '</td>';
-                cols += '<td>' + return_qty[index] + ' ' + unit_code[index] + '</td>';
+                cols += '<td>' + return_qty[index] + '</td>';
                 cols += '<td>' + parseFloat(subtotal[index] / qty[index]).toFixed({{$general_setting->decimal}}) + '</td>';
                 cols += '<td>' + tax[index] + '(' + tax_rate[index] + '%)' + '</td>';
                 cols += '<td>' + discount[index] + '</td>';
@@ -1178,6 +1239,14 @@
         return false;
     }
 
+    $(document).ready(function() {
+        $(document).on('click', '.send-sms', function(){
+            $("#send-sms input[name='customer_id']").val($(this).data('customer_id'));
+            $("#send-sms input[name='reference_no']").val($(this).data('reference_no'));
+            $("#send-sms input[name='sale_status']").val($(this).data('sale_status'));
+            $("#send-sms input[name='payment_status']").val($(this).data('payment_status'));
+        });
+    });
 </script>
 <script type="text/javascript" src="https://js.stripe.com/v3/"></script>
 @endpush

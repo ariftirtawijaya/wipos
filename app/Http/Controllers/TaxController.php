@@ -39,9 +39,12 @@ class TaxController extends Controller
         ]);
         $input = $request->all();
         $input['is_active'] = true;
-        Tax::create($input);
+        $tax = Tax::create($input);
         $this->cacheForget('tax_list');
-        return redirect('tax')->with('message', 'Data inserted successfully');
+        if($input['ajax'])
+            return $tax;
+        else
+            return redirect('tax')->with('message', 'Data inserted successfully');
     }
 
     public function limsTaxSearch()

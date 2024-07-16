@@ -82,6 +82,22 @@
                 <label>{{trans('file.Image')}}</label>
                 {{Form::file('image', array('class' => 'form-control'))}}
             </div>
+            @if(in_array('ecommerce',explode(',',$general_setting->modules)))
+            <div class="row">
+                <div class="col-md-12 mt-3">
+                    <h6><strong>{{ __('For SEO') }}</strong></h6>
+                    <hr>
+                </div>
+                <div class="col-md-12 form-group">
+                    <label>{{ __('Meta Title') }}</label>
+                    {{Form::text('page_title',null,array('class' => 'form-control', 'placeholder' => 'Meta Title...'))}}
+                </div>
+                <div class="col-md-12 form-group">
+                    <label>{{ __('Meta Description') }}</label>
+                    {{Form::text('short_description',null,array('class' => 'form-control', 'placeholder' => 'Meta Description...'))}}
+                </div>
+            </div>
+            @endif
             <div class="form-group">
               <input type="submit" value="{{trans('file.submit')}}" class="btn btn-primary">
             </div>
@@ -143,6 +159,22 @@
             <label>{{trans('file.Image')}}</label>
             {{Form::file('image', array('class' => 'form-control'))}}
         </div>
+        @if(in_array('ecommerce',explode(',',$general_setting->modules)))
+        <div class="row">
+            <div class="col-md-12 mt-3">
+                <h6><strong>{{ __('For SEO') }}</strong></h6>
+                <hr>
+            </div>
+            <div class="col-md-12 form-group">
+                <label>{{ __('Meta Title') }}</label>
+                {{Form::text('page_title',null,array('class' => 'form-control', 'placeholder' => 'Meta Title...'))}}
+            </div>
+            <div class="col-md-12 form-group">
+                <label>{{ __('Meta Description') }}</label>
+                {{Form::text('short_description',null,array('class' => 'form-control', 'placeholder' => 'Meta Description...'))}}
+            </div>
+        </div>
+        @endif
         <div class="form-group">
             <input type="submit" value="{{trans('file.submit')}}" class="btn btn-primary">
           </div>
@@ -208,9 +240,10 @@
             url = url.concat(id).concat("/edit");
 
             $.get(url, function(data) {
-                $("input[name='title']").val(data['title']);
-                $("input[name='brand_id']").val(data['id']);
-
+                $("#editModal input[name='title']").val(data['title']);
+                $("#editModal input[name='brand_id']").val(data['id']);
+                $("#editModal input[name='page_title']").val(data['page_title']);
+                $("#editModal input[name='short_description']").val(data['short_description']);
             });
         });
     });

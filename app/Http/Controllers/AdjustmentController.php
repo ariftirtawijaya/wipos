@@ -11,6 +11,7 @@ use App\Models\ProductAdjustment;
 use DB;
 use App\Models\StockCount;
 use App\Models\ProductVariant;
+use App\Models\ProductPurchase;
 use Auth;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
@@ -40,7 +41,7 @@ class AdjustmentController extends Controller
                                         ['products.is_active', true],
                                         ['product_warehouse.warehouse_id', $id]
                                     ])
-                                    ->select('product_warehouse.qty', 'products.code', 'products.name')
+                                    ->select('product_warehouse.qty', 'products.code', 'products.name', 'product_warehouse.product_id', 'products.cost')
                                     ->get();
         $lims_product_withVariant_warehouse_data = DB::table('products')
                                     ->join('product_warehouse', 'products.id', '=', 'product_warehouse.product_id')
@@ -49,36 +50,68 @@ class AdjustmentController extends Controller
                                         ['products.is_active', true],
                                         ['product_warehouse.warehouse_id', $id]
                                     ])
-                                    ->select('products.name', 'product_warehouse.qty', 'product_warehouse.product_id', 'product_warehouse.variant_id')
+                                    ->select('products.name', 'product_warehouse.qty', 'product_warehouse.product_id', 'product_warehouse.variant_id', 'products.cost')
                                     ->get();
         $product_code = [];
         $product_name = [];
         $product_qty = [];
+        $product_cost = [];
         $product_data = [];
         foreach ($lims_product_warehouse_data as $product_warehouse)
         {
             $product_qty[] = $product_warehouse->qty;
             $product_code[] =  $product_warehouse->code;
             $product_name[] = $product_warehouse->name;
+            $query = array(
+                    'SUM(qty) AS total_qty',
+                    'SUM(total) AS total_cost'
+                );
+            $product_purchase_data = ProductPurchase::join('purchases', 'product_purchases.product_id', '=', 'purchases.id')
+                                    ->where([
+                                        ['product_id', $product_warehouse->product_id],
+                                        ['warehouse_id', $id]
+                                    ])->selectRaw(implode(',', $query))->get();
+            if(count($product_purchase_data) && $product_purchase_data[0]->total_qty > 0)
+                $product_cost[] = $product_purchase_data[0]->total_cost / $product_purchase_data[0]->total_qty;
+            else
+                $product_cost[] = $product_warehouse->cost;
         }
 
         foreach ($lims_product_withVariant_warehouse_data as $product_warehouse)
         {
             $product_variant = ProductVariant::select('item_code')->FindExactProduct($product_warehouse->product_id, $product_warehouse->variant_id)->first();
-            $product_qty[] = $product_warehouse->qty;
-            $product_code[] =  $product_variant->item_code;
-            $product_name[] = $product_warehouse->name;
+            if($product_variant) {
+                $product_qty[] = $product_warehouse->qty;
+                $product_code[] =  $product_variant->item_code;
+                $product_name[] = $product_warehouse->name;
+                $query = array(
+                    'SUM(qty) AS total_qty',
+                    'SUM(total) AS total_cost'
+                );
+                $product_purchase_data = ProductPurchase::join('purchases', 'product_purchases.product_id', '=', 'purchases.id')
+                                        ->where([
+                                            ['product_id', $product_warehouse->product_id],
+                                            ['variant_id', $product_warehouse->variant_id],
+                                            ['warehouse_id', $id]
+                                        ])->selectRaw(implode(',', $query))->get();
+                if(count($product_purchase_data) && $product_purchase_data[0]->total_qty > 0)
+                    $product_cost[] = $product_purchase_data[0]->total_cost / $product_purchase_data[0]->total_qty;
+                else
+                    $product_cost[] = $product_warehouse->cost;
+                }
         }
 
         $product_data[] = $product_code;
         $product_data[] = $product_name;
         $product_data[] = $product_qty;
+        $product_data[] = $product_cost;
         return $product_data;
     }
 
     public function limsProductSearch(Request $request)
     {
         $product_code = explode("(", $request['data']);
+        $product_info = explode("|", $request['data']);
         $product_code[0] = rtrim($product_code[0], " ");
         $lims_product_data = Product::where([
             ['code', $product_code[0]],
@@ -104,6 +137,7 @@ class AdjustmentController extends Controller
 
         $product[] = $lims_product_data->id;
         $product[] = $product_variant_id;
+        $product[] = $product_info[1];
         return $product;
     }
 
@@ -134,6 +168,7 @@ class AdjustmentController extends Controller
         $product_id = $data['product_id'];
         $product_code = $data['product_code'];
         $qty = $data['qty'];
+        $unit_cost = $data['unit_cost'];
         $action = $data['action'];
 
         foreach ($product_id as $key => $pro_id) {
@@ -178,6 +213,7 @@ class AdjustmentController extends Controller
             $product_adjustment['variant_id'] = $variant_id;
             $product_adjustment['adjustment_id'] = $lims_adjustment_data->id;
             $product_adjustment['qty'] = $qty[$key];
+            $product_adjustment['unit_cost'] = $unit_cost[$key];
             $product_adjustment['action'] = $action[$key];
             ProductAdjustment::create($product_adjustment);
         }
@@ -212,6 +248,7 @@ class AdjustmentController extends Controller
         $product_variant_id = $data['product_variant_id'];
         $product_code = $data['product_code'];
         $qty = $data['qty'];
+        $unit_cost = $data['unit_cost'];
         $action = $data['action'];
         $old_product_variant_id = [];
         foreach ($lims_product_adjustment_data as $key => $product_adjustment_data) {
@@ -304,6 +341,7 @@ class AdjustmentController extends Controller
             $product_adjustment['variant_id'] = $variant_id;
             $product_adjustment['adjustment_id'] = $id;
             $product_adjustment['qty'] = $qty[$key];
+            $product_adjustment['unit_cost'] = $unit_cost[$key];
             $product_adjustment['action'] = $action[$key];
 
             if($product_adjustment['variant_id'] && in_array($product_variant_id[$key], $old_product_variant_id)) {

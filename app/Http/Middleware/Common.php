@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\URL;
 
 class Common
 {
+    use \App\Traits\TenantInfo;
+    
     public function handle(Request $request, Closure $next)
     {
         /*if( (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443) {
@@ -23,11 +25,19 @@ class Common
         });
 
         $todayDate = date("Y-m-d");
-        if($general_setting->expiry_date) {
-            $expiry_date = date("Y-m-d", strtotime($general_setting->expiry_date));
-            if($todayDate > $expiry_date) {
-                auth()->logout();
-                return redirect()->route('contactForRenewal');
+        if(config('database.connections.saleprosaas_landlord')) {
+            $subdomain = $this->getTenantId();
+            if($general_setting->expiry_date) {
+                $expiry_date = date("Y-m-d", strtotime($general_setting->expiry_date));
+                if($todayDate > $expiry_date) {
+                    auth()->logout();
+                    return redirect('https://'.env('CENTRAL_DOMAIN').'/contact-for-renewal?id='.$subdomain);
+                }
+            }
+            View::share('subdomain', $subdomain);
+            $external_service = DB::table('external_services')->get();
+            if(!count($external_service)) {
+                \DB::unprepared(file_get_contents('public/external_services.sql'));
             }
         }
         //setting language
@@ -51,7 +61,7 @@ class Common
 
         View::share('general_setting', $general_setting);
         View::share('currency', $currency);
-        config(['staff_access' => $general_setting->staff_access, 'date_format' => $general_setting->date_format, 'currency' => $currency->code, 'currency_position' => $general_setting->currency_position, 'decimal' => $general_setting->decimal, 'is_zatca' => $general_setting->is_zatca, 'company_name' => $general_setting->company_name, 'vat_registration_number' => $general_setting->vat_registration_number, 'without_stock' => $general_setting->without_stock]);
+        config(['staff_access' => $general_setting->staff_access, 'date_format' => $general_setting->date_format, 'currency' => $currency->code, 'currency_position' => $general_setting->currency_position, 'decimal' => $general_setting->decimal, 'is_zatca' => $general_setting->is_zatca, 'company_name' => $general_setting->company_name, 'vat_registration_number' => $general_setting->vat_registration_number, 'without_stock' => $general_setting->without_stock, 'addons' => $general_setting->modules]);
 
         $alert_product = DB::table('products')->where('is_active', true)->whereColumn('alert_quantity', '>', 'qty')->count();
         $dso_alert_product = DB::table('dso_alerts')->select('number_of_products')->whereDate('created_at', date("Y-m-d"))->first();

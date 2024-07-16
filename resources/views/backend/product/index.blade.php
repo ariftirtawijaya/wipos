@@ -22,6 +22,11 @@
         @if(in_array("products-add", $all_permission))
             <a href="{{route('products.create')}}" class="btn btn-info add-product-btn"><i class="dripicons-plus"></i> {{__('file.add_product')}}</a>
             <a href="#" data-toggle="modal" data-target="#importProduct" class="btn btn-primary add-product-btn"><i class="dripicons-copy"></i> {{__('file.import_product')}}</a>
+            
+        @endif
+        @if( in_array("products-edit", $all_permission) && in_array('ecommerce',explode(',',$general_setting->modules)) )
+            <a href="{{route('product.allProductInStock')}}" class="btn btn-dark add-product-btn"><i class="dripicons-stack"></i> {{__('file.All Product In Stock')}}</a>
+            <a href="{{route('product.showAllProductOnline')}}" class="btn btn-dark add-product-btn"><i class="dripicons-wifi"></i> {{__('file.Show All Product Online')}}</a>
         @endif
     </div>
     <div class="table-responsive">
@@ -539,7 +544,8 @@
                             $(':checkbox:checked').each(function(i){
                                 if(i){
                                     var product_data = $(this).closest('tr').data('product');
-                                    product_id[i-1] = product_data[12];
+                                    if(product_data)
+                                        product_id[i-1] = product_data[12];
                                 }
                             });
                             if(product_id.length && confirmDelete()) {
@@ -549,7 +555,8 @@
                                     data:{
                                         productIdArray: product_id
                                     },
-                                    success:function(data){
+                                    success:function(data) {
+                                        alert(data);
                                         //dt.rows({ page: 'current', selected: true }).deselect();
                                         dt.rows({ page: 'current', selected: true }).remove().draw(false);
                                     }

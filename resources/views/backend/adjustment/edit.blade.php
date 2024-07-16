@@ -56,6 +56,7 @@
                                                     <tr>
                                                         <th>{{trans('file.name')}}</th>
                                                         <th>{{trans('file.Code')}}</th>
+                                                        <th>{{trans('file.Unit Cost')}}</th>
                                                         <th>{{trans('file.Quantity')}}</th>
                                                         <th>{{trans('file.action')}}</th>
                                                         <th><i class="dripicons-trash"></i></th>
@@ -76,6 +77,7 @@
                                                 	?>
                                                 	<td>{{$product->name}}</td>
                                                 	<td>{{$product->code}}</td>
+                                                    <td>{{$product_adjustment_data->unit_cost}}<input type="hidden" name="unit_cost[]" value="{{$product_adjustment_data->unit_cost}}" /></td>
                                                 	<td><input type="number" class="form-control qty" name="qty[]" value="{{$product_adjustment_data->qty}}" required step="any" /></td>
                                                 	<td class="action">
                                                 		<select name="action[]" class="form-control act-val">
@@ -96,7 +98,7 @@
                                                 	</tr>
                                                 </tbody>
                                                 <tfoot class="tfoot active">
-                                                    <th colspan="2">{{trans('file.Total')}}</th>
+                                                    <th colspan="3">{{trans('file.Total')}}</th>
                                                     <th id="total-qty" colspan="2">0</th>
                                                     <th><i class="dripicons-trash"></i></th>
                                                 </tfoot>
@@ -144,6 +146,7 @@ var lims_product_array = [];
 var product_code = [];
 var product_name = [];
 var product_qty = [];
+var unit_cost = [];
 
 var exist_code = [];
 var exist_qty = [];
@@ -180,12 +183,13 @@ for(rowindex  =0; rowindex <= rownumber; rowindex++){
         product_code = data[0];
         product_name = data[1];
         product_qty = data[2];
+        unit_cost = data[3];
         $.each(product_code, function(index) {
             if(exist_code.includes(product_code[index])) {
                 pos = exist_code.indexOf(product_code[index]);
                 product_qty[index] = product_qty[index] + exist_qty[pos];
             }
-            lims_product_array.push(product_code[index] + ' (' + product_name[index] + ')');
+            lims_product_array.push(product_code[index] + ' (' + product_name[index] + ')'+ '|' + unit_cost[index]);
         });
     });
 
@@ -218,9 +222,10 @@ for(rowindex  =0; rowindex <= rownumber; rowindex++){
 	        product_code = data[0];
 	        product_name = data[1];
 	        product_qty = data[2];
-	        $.each(product_code, function(index) {
-	            lims_product_array.push(product_code[index] + ' (' + product_name[index] + ')');
-	        });
+	        unit_cost = data[3];
+            $.each(product_code, function(index) {
+                lims_product_array.push(product_code[index] + ' (' + product_name[index] + ')' + '|' + unit_cost[index]);
+            });
 	    });
 	});
 
@@ -286,6 +291,7 @@ for(rowindex  =0; rowindex <= rownumber; rowindex++){
                     var cols = '';
                     cols += '<td>' + data[0] + '</td>';
                     cols += '<td>' + data[1] + '</td>';
+                    cols += '<td>' + data[4] + '<input type="hidden" name="unit_cost[]" value="'+data[4]+'" /></td>';
                     cols += '<td><input type="number" class="form-control qty" name="qty[]" value="1" required step="any"/></td>';
                     cols += '<td class="action"><select name="action[]" class="form-control act-val"><option value="-">{{trans("file.Subtraction")}}</option><option value="+">{{trans("file.Addition")}}</option></select></td>';
                     cols += '<td><button type="button" class="ibtnDel btn btn-md btn-danger">{{trans("file.delete")}}</button></td>';

@@ -129,6 +129,7 @@ class CategoryController extends Controller
 
     public function store(Request $request)
     {
+        
         $request->name = preg_replace('/\s+/', ' ', $request->name);
         $this->validate($request, [
             'name' => [
@@ -140,6 +141,7 @@ class CategoryController extends Controller
             'image' => 'image|mimes:jpg,jpeg,png,gif',
             'icon'  => 'mimetypes:text/plain,image/png,image/jpeg,image/svg',
         ]);
+        
         $image = $request->image;
         if ($image) {
             $ext = pathinfo($image->getClientOriginalName(), PATHINFO_EXTENSION);
@@ -170,34 +172,43 @@ class CategoryController extends Controller
                 $iconName = $this->getTenantId() . '_' . $iconName . '.' . $ext;
                 $icon->move('public/images/category/icons/', $iconName);
             }
-            Image::make('public/images/category/'. $iconName)->fit(100, 100)->save();
+            Image::make('public/images/category/icons/'. $iconName)->fit(100, 100)->save();
             $lims_category_data['icon'] = $iconName;
         }
         $lims_category_data['name'] = $request->name;
         $lims_category_data['parent_id'] = $request->parent_id;
         $lims_category_data['is_active'] = true;
-
+        $lims_category_data['ajax'] = $request->ajax;
+       
         if(isset($request->is_sync_disable))
             $lims_category_data['is_sync_disable'] = $request->is_sync_disable;
 
-        if(isset($request->slug)) {
+        if(in_array('ecommerce', explode(',',config('addons')))) {
             $lims_category_data['slug'] = Str::slug($request->name, '-');
-            $lims_category_data['featured'] = $request->featured;
+            if($request->featured == 1){
+                $lims_category_data['featured'] = 1;
+            } else {
+                $lims_category_data['featured'] = 0;
+            }
             $lims_category_data['page_title'] = $request->page_title;
             $lims_category_data['short_description'] = $request->short_description;
         }
+        $category = Category::create($lims_category_data);
 
-        DB::table('categories')->insert($lims_category_data);
         $this->cacheForget('category_list');
-        return redirect('category')->with('message', 'Category inserted successfully');
+        if($lims_category_data['ajax'])
+            return $category;
+        else
+            return redirect('category')->with('message', 'Category inserted successfully');
     }
 
     public function edit($id)
     {
         $lims_category_data = DB::table('categories')->where('id', $id)->first();
         $lims_parent_data = DB::table('categories')->where('id', $lims_category_data->parent_id)->first();
-        if($lims_parent_data)
-            $lims_category_data['parent'] = $lims_parent_data['name'];
+        if($lims_parent_data){
+            $lims_category_data->parent = $lims_parent_data->name;
+        }
         return $lims_category_data;
     }
 
@@ -264,6 +275,17 @@ class CategoryController extends Controller
         }
         if(!isset($input['is_sync_disable']) && \Schema::hasColumn('categories', 'is_sync_disable'))
             $input['is_sync_disable'] = null;
+
+        if(in_array('ecommerce', explode(',',config('addons')))) {
+            $input['slug'] = Str::slug($request->name, '-');
+            if($request->featured == 1){
+                $input['featured'] = 1;
+            } else {
+                $input['featured'] = 0;
+            }
+            $input['page_title'] = $request->page_title;
+            $input['short_description'] = $request->short_description;
+        }
 
         DB::table('categories')->where('id', $request->category_id)->update($input);
         

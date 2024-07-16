@@ -24,7 +24,7 @@ class SuperAdminLoginController extends Controller
             $theme = $_COOKIE['theme'];
         else
             $theme = 'light';
-        $general_setting = \App\GeneralSetting::latest()->first();
+        $general_setting = \App\Models\GeneralSetting::latest()->first();
         return view('landlord.login', compact('theme', 'general_setting'));
     }
 

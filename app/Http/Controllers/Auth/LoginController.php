@@ -64,6 +64,7 @@ class LoginController extends Controller
             $general_setting =  Cache::remember('general_setting', 60*60*24*365, function () {
                 return DB::table('general_settings')->latest()->first();
             });
+            copy("public/landlord/images/logo/".$general_setting->site_logo, "public/logo/".$general_setting->site_logo);
         }
         $numberOfUserAccount = \App\Models\User::where('is_active', true)->count();
         return view('backend.auth.login', compact('theme', 'general_setting', 'numberOfUserAccount'));

@@ -51,7 +51,7 @@
 
                     	 	if($key)
                     	 		echo '<br>';
-                    	 	echo $product->name.' ['.$product->code.']';
+                    	 	echo $product->name.'<br>'.$product_adjustment->qty.' x '.$product_adjustment->unit_cost;
                     	 }
                     ?>
                     </td>

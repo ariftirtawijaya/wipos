@@ -314,19 +314,19 @@
                 className: 'buttons-delete',
                 action: function ( e, dt, node, config ) {
                     if(user_verified == '1') {
-                        sale_id.length = 0;
+                        return_id.length = 0;
                         $(':checkbox:checked').each(function(i){
                             if(i){
-                                var sale = $(this).closest('tr').data('sale');
-                                sale_id[i-1] = sale[13];
+                                var returnData = $(this).closest('tr').data('return');
+                                return_id[i-1] = returnData[11];
                             }
                         });
-                        if(sale_id.length && confirm("Are you sure want to delete?")) {
+                        if(return_id.length && confirm("Are you sure want to delete?")) {
                             $.ajax({
                                 type:'POST',
-                                url:'sales/deletebyselection',
+                                url:'return-purchase/deletebyselection',
                                 data:{
-                                    saleIdArray: sale_id
+                                    returnIdArray: return_id
                                 },
                                 success:function(data){
                                     alert(data);
@@ -335,7 +335,7 @@
                                 }
                             });
                         }
-                        else if(!sale_id.length)
+                        else if(!return_id.length)
                             alert('Nothing is selected!');
                     }
                     else

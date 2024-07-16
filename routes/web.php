@@ -39,6 +39,7 @@ use App\Http\Controllers\CourierController;
 use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LanguageController;
+use App\Http\Controllers\LanguageSettingController;
 use App\Http\Controllers\MoneyTransferController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PayrollController;
@@ -49,6 +50,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ReturnController;
 use App\Http\Controllers\ReturnPurchaseController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\SaasInstallController;
 use App\Http\Controllers\SaleController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\StockCountController;
@@ -59,9 +61,42 @@ use App\Http\Controllers\TransferController;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WarehouseController;
+use App\Http\Controllers\SmsTemplateController;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/service-worker.js', function () {
+    $path = base_path('service-worker.js'); // Ubah sesuai dengan lokasi file
+
+    if (!File::exists($path)) {
+        abort(404);
+    }
+
+    $file = File::get($path);
+    $type = 'application/javascript';
+
+    $response = Response::make($file, 200);
+    $response->header("Content-Type", $type);
+
+    return $response;
+});
+
+Route::get('/manifest.json', function () {
+    $path = base_path('manifest.json'); // Ubah sesuai dengan lokasi file
+
+    if (!File::exists($path)) {
+        abort(404);
+    }
+
+    $file = File::get($path);
+    $type = 'application/json';
+
+    $response = Response::make($file, 200);
+    $response->header("Content-Type", $type);
+
+    return $response;
+});
 
 Route::get('migrate', function() {
 	Artisan::call('migrate');
@@ -91,8 +126,6 @@ Route::get('clear',function() {
     dd('cleared');
 });
 
-
-
 Route::get('update-coupon', [CouponController::class, 'updateCoupon']);
 
 Route::get('auto-update-dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -118,6 +151,9 @@ Route::controller(ClientAutoUpdateController::class)->group(function () {
 
 Auth::routes();
 Route::get('/documentation', [HomeController::class, 'documentation']);
+Route::get('/ecommerce-documentation', [HomeController::class, 'ecomDocumentation']);
+
+Route::post('/session-renew', [HomeController::class, 'sessionRenew'])->name('session');
 
 Route::group(['middleware' => 'auth'], function() {
     Route::controller(HomeController::class)->group(function () {
@@ -126,6 +162,18 @@ Route::group(['middleware' => 'auth'], function() {
 });
 
 Route::group(['middleware' => ['common', 'auth', 'active']], function() {
+
+    // Languages Section
+    Route::prefix('languages')->group(function () {
+        Route::get('/', [LanguageSettingController::class, 'languages'])->name('languages.index');
+        Route::get('/{language}/translations', [LanguageSettingController::class, 'index'])->name('languages.translations.index');
+        Route::post('/update', [LanguageSettingController::class, 'update'])->name('language.translations.update');
+
+        Route::get('/create', [LanguageSettingController::class, 'create'])->name('languages.create');
+        Route::post('/store', [LanguageSettingController::class, 'store'])->name('languages.store');
+        Route::get('/switch/{lang}', [LanguageSettingController::class, 'languageSwitch'])->name('language.switch');
+        Route::get('/delete', [LanguageSettingController::class, 'languageDelete'])->name('language.delete');
+    });
 
     Route::controller(HomeController::class)->group(function () {
         Route::get('/', 'index');
@@ -143,6 +191,15 @@ Route::group(['middleware' => ['common', 'auth', 'active']], function() {
         Route::get('my-transactions/{year}/{month}', 'myTransaction');
     });
 
+    Route::controller(SaasInstallController::class)->group(function () {
+        Route::prefix('saas')->group(function () {
+            Route::get('install/step-1', 'saasInstallStep1')->name('saas-install-step-1');
+            Route::get('install/step-2', 'saasInstallStep2')->name('saas-install-step-2');
+            Route::get('install/step-3', 'saasInstallStep3')->name('saas-install-step-3');
+            Route::post('install/process', 'saasInstallProcess')->name('saas-install-process');
+            Route::get('install/step-4', 'saasInstallStep4')->name('saas-install-step-4');
+        });
+    });
 
     // Need to check again
     Route::resource('products',ProductController::class)->except([ 'show']);
@@ -166,6 +223,8 @@ Route::group(['middleware' => ['common', 'auth', 'active']], function() {
 
         Route::post('importproduct', 'importProduct')->name('product.import');
         Route::post('exportproduct', 'exportProduct')->name('product.export');
+        Route::get('products/all-product-in-stock', 'allProductInStock')->name('product.allProductInStock');
+        Route::get('products/show-all-product-online', 'showAllProductOnline')->name('product.showAllProductOnline');
         Route::get('check-batch-availability/{product_id}/{batch_no}/{warehouse_id}', 'checkBatchAvailability');
      });
 
@@ -178,6 +237,14 @@ Route::group(['middleware' => ['common', 'auth', 'active']], function() {
         Route::post('role/set_permission', 'setPermission')->name('role.setPermission');
     });
 
+    //Sms Template 
+    Route::resource('smstemplates',SmsTemplateController::class);
+    Route::resource('unit', UnitController::class);
+    Route::controller(UnitController::class)->group(function () {
+        Route::post('importunit', 'importUnit')->name('unit.import');
+        Route::post('unit/deletebyselection', 'deleteBySelection');
+        Route::get('unit/lims_unit_search', 'limsUnitSearch')->name('unit.search');
+     });
 
     Route::resource('unit', UnitController::class);
     Route::controller(UnitController::class)->group(function () {
@@ -295,6 +362,7 @@ Route::group(['middleware' => ['common', 'auth', 'active']], function() {
         Route::get('sales/today-sale', 'todaySale');
         Route::get('sales/today-profit/{warehouse_id}', 'todayProfit');
         Route::get('sales/check-discount', 'checkDiscount');
+        Route::post('sales/sendsms', 'sendSMS')->name('sale.sendsms');
     });
     Route::resource('sales', SaleController::class);
 
@@ -340,6 +408,7 @@ Route::group(['middleware' => ['common', 'auth', 'active']], function() {
             Route::post('updatepayment', 'updatePayment')->name('purchase.update-payment');
             Route::post('deletepayment', 'deletePayment')->name('purchase.delete-payment');
             Route::get('purchase_by_csv', 'purchaseByCsv');
+            Route::get('duplicate/{id}', 'duplicate')->name('purchase.duplicate');
             Route::post('deletebyselection', 'deleteBySelection');
         });
         Route::post('importpurchase', 'importPurchase')->name('purchase.import');
@@ -484,7 +553,7 @@ Route::group(['middleware' => ['common', 'auth', 'active']], function() {
             Route::get('mail_setting', 'mailSetting')->name('setting.mail');
             Route::get('sms_setting', 'smsSetting')->name('setting.sms');
             Route::get('createsms', 'createSms')->name('setting.createSms');
-            Route::post('sendsms', 'sendSms')->name('setting.sendSms');
+            Route::post('sendsms', 'sendSMS')->name('setting.sendSms');
             Route::get('hrm_setting', 'hrmSetting')->name('setting.hrm');
             Route::post('hrm_setting_store', 'hrmSettingStore')->name('setting.hrmStore');
             Route::post('mail_setting_store', 'mailSettingStore')->name('setting.mailStore');
@@ -605,5 +674,8 @@ Route::group(['middleware' => ['common', 'auth', 'active']], function() {
 	Route::resource('custom-fields', CustomFieldController::class);
 
 	Route::post('woocommerce-install', [AddonInstallController::class,'woocommerceInstall'])->name('woocommerce.install');
+
+    Route::post('ecommerce-install', [AddonInstallController::class,'ecommerceInstall'])->name('ecommerce.install');
+
 });
 

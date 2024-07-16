@@ -1,13 +1,18 @@
 <?php
 namespace App\Traits;
 use App\Models\GeneralSetting;
-use App\Tenant;
+use App\Models\landlord\Tenant;
 use DB;
 use Cache;
-use App\Package;
-use App\TenantPayment;
+use App\Models\landlord\Package;
+use App\Models\landlord\TenantPayment;
+use App\Mail\TenantCreate;
+use App\Models\MailSetting;
+use Mail;
 
 trait TenantInfo {
+
+    use \App\Traits\MailInfo;
 
     public function getTenantId()
     {
@@ -20,7 +25,7 @@ trait TenantInfo {
         return $urlInfo[0];
     }
 
-    public function changePermission($packageData)
+    public function setPermission($packageData)
     {
         //updating the sql file which tenant will import
         $sqlFile = fopen("public/tenant_necessary.sql", "r");
@@ -42,7 +47,18 @@ trait TenantInfo {
         else{
             $general_setting = DB::table('general_settings')->latest()->first();
         }
-        $package = Package::select('is_free_trial')->find($request->package_id);
+        $package = Package::select('is_free_trial', 'features')->find($request->package_id);
+        $features = json_decode($package->features);
+        $modules = [];
+        if(in_array("ecommerce", $features))
+            $modules[] = "ecommerce";
+        if(in_array("woocommerce", $features))
+            $modules[] = "woocommerce";
+        if(count($modules))
+            $modules = implode(",", $modules);
+        else
+            $modules = '';
+
         if($package->is_free_trial)
             $numberOfDaysToExpired = $general_setting->free_trial_limit;
         elseif($request->subscription_type == 'monthly')
@@ -53,22 +69,6 @@ trait TenantInfo {
             $paid_by = $request->payment_method;
         else
             $paid_by = '';
-        /*if(!$package->is_free_trial && $general_setting->active_payment_gateway == 'stripe') {
-            Stripe::setApiKey($general_setting->stripe_secret_key);
-            $token = $request->stripeToken;
-            $amount = $request->price;
-            // Create a Customer:
-            $customer = \Stripe\Customer::create([
-                'source' => $token
-            ]);
-            // Charge the Customer instead of the card:
-            $charge = \Stripe\Charge::create([
-                'amount' => $amount * 100,
-                'currency' => $general_setting->currency,
-                'customer' => $customer->id
-            ]);
-            $paid_by = 'Stripe';
-        }*/
         //creating tenant
         $tenant = Tenant::create(['id' => $request->tenant]);
         $tenant->domains()->create(['domain' => $request->tenant.'.'.env('CENTRAL_DOMAIN')]);
@@ -79,22 +79,48 @@ trait TenantInfo {
         $sqlFile = fopen("public/tenant_necessary_base.sql", "r");
         $baseSqlData = fread($sqlFile,filesize("public/tenant_necessary_base.sql"));
         fclose($sqlFile);
-        $newSqlDataForSetting = str_replace("(1, 'WiPOS', '20220905125905.png', 0, '1', 0, 'monthly', 'own', 'd/m/Y', 'Lioncoders', 'standard', 1, 'default.css', '2018-07-06 06:13:11', '2022-09-05 06:59:05', 'prefix', '1970-01-01');", "(1, '".$general_setting->site_title."', '".$general_setting->site_logo."', 0, '1', ".$request->package_id.", "."'".$request->subscription_type."', 'own', 'd/m/Y', '".$general_setting->developed_by."', 'standard', 1, 'default.css', '2018-07-06 06:13:11', '2022-09-05 06:59:05', 'prefix', '".date("Y-m-d", strtotime("+".$numberOfDaysToExpired." days"))."');", $baseSqlData);
+        $newSqlDataForSetting = str_replace("(1, 'SalePro', '20220905125905.png', 0, '1', 0, 'monthly', 'own', 'd/m/Y', 'Lioncoders', 'standard', 1, 'default.css', Null, '2018-07-06 06:13:11', '2022-09-05 06:59:05', 'prefix', '1970-01-01');", "(1, '".$general_setting->site_title."', '".$general_setting->site_logo."', 0, '1', ".$request->package_id.", "."'".$request->subscription_type."', 'own', 'd/m/Y', '".$general_setting->developed_by."', 'standard', 1, 'default.css', '".$modules."', '2018-07-06 06:13:11', '2022-09-05 06:59:05', 'prefix', '".date("Y-m-d", strtotime("+".$numberOfDaysToExpired." days"))."');", $baseSqlData);
         $sqlFile = fopen("public/tenant_necessary.sql", "w");
         fwrite($sqlFile, $newSqlDataForSetting);
         fclose($sqlFile);
         //updating user information
         $encryptedPass = '$2y$10$DWAHTfjcvwCpOCXaJg11MOhsqns03uvlwiSUOQwkHL2YYrtrXPcL6';
         $newEncryptedPass = bcrypt($request->password);
-        $newSqlDataForUser = str_replace("(1, 'admin', 'admin@gmail.com', '".$encryptedPass."', '6mN44MyRiQZfCi0QvFFIYAU9LXIUz9CdNIlrRS5Lg8wBoJmxVu8auzTP42ZW', '12112', 'witek', 1, NULL, NULL, 1, 0, '2018-06-02 03:24:15', '2018-09-05 00:14:15')", "(1, '".$request->name."', '".$request->email."', '".$newEncryptedPass."', '6mN44MyRiQZfCi0QvFFIYAU9LXIUz9CdNIlrRS5Lg8wBoJmxVu8auzTP42ZW', ".$request->phone_number.",  '".$request->company_name."', 1, NULL, NULL, 1, 0, '2018-06-02 03:24:15', '2018-09-05 00:14:15')", $newSqlDataForSetting);
+        $newSqlDataForUser = str_replace("(1, 'admin', 'admin@gmail.com', '".$encryptedPass."', '6mN44MyRiQZfCi0QvFFIYAU9LXIUz9CdNIlrRS5Lg8wBoJmxVu8auzTP42ZW', '12112', 'lioncoders', 1, NULL, NULL, 1, 0, '2018-06-02 03:24:15', '2018-09-05 00:14:15')", "(1, '".$request->name."', '".$request->email."', '".$newEncryptedPass."', '6mN44MyRiQZfCi0QvFFIYAU9LXIUz9CdNIlrRS5Lg8wBoJmxVu8auzTP42ZW', ".$request->phone_number.",  '".$request->company_name."', 1, NULL, NULL, 1, 0, '2018-06-02 03:24:15', '2018-09-05 00:14:15')", $newSqlDataForSetting);
         $sqlFile = fopen("public/tenant_necessary.sql", "w");
         fwrite($sqlFile, $newSqlDataForUser);
         fclose($sqlFile);
         //updating permission info in the sql file which tenant will import
         $packageData = DB::table('packages')->find($request->package_id);
-        $this->changePermission($packageData);
-
+        $this->setPermission($packageData);
+        //code for plesk
+        if(env('SERVER_TYPE') == 'plesk') {
+            $dbId = session()->get('db_id');
+            session(['db_id' => 0]);
+        }
+        else {
+            $dbId = 0;
+        }
         //updating tenant others information on landlord DB
-        $tenant->update(['package_id' => $request->package_id, 'subscription_type' => $request->subscription_type, 'company_name' => $request->company_name, 'phone_number' => $request->phone_number, 'email' => $request->email, 'expiry_date' => date("Y-m-d", strtotime("+".$numberOfDaysToExpired." days"))]);
+        $tenant->update(['db_id'=> $dbId, 'package_id' => $request->package_id, 'subscription_type' => $request->subscription_type, 'company_name' => $request->company_name, 'phone_number' => $request->phone_number, 'email' => $request->email, 'expiry_date' => date("Y-m-d", strtotime("+".$numberOfDaysToExpired." days"))]);
+        //sending welcome message to tenant
+        $mail_setting = MailSetting::latest()->first();
+        $message = 'Client created successfully';
+        if($mail_setting) {
+            $this->setMailInfo($mail_setting);
+            $mail_data['email'] = $request->email;
+            $mail_data['company_name'] = $request->company_name;
+            $mail_data['superadmin_company_name'] = $general_setting->site_title;
+            $mail_data['subdomain'] = $request->tenant;
+            $mail_data['name'] = $request->name;
+            $mail_data['password'] = $request->password;
+            $mail_data['superadmin_email'] = $general_setting->email;
+            try {
+                Mail::to($mail_data['email'])->send(new TenantCreate($mail_data));
+            }
+            catch(\Exception $e){
+                $message = 'Client created successfully. Please setup your <a href="../mail_setting">mail setting</a> to send mail.';
+            }
+        }
     }
 }

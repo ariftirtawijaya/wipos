@@ -42,14 +42,14 @@
                                             @endforeach
                                         </select>
                                     </div>
-                                    <div class="form-group">
+                                    {{-- <div class="form-group">
                                         @if($lims_pos_setting_data && $lims_pos_setting_data->keybord_active)
                                         <input class="mt-2" type="checkbox" name="keybord_active" value="1" checked>
                                         @else
                                         <input class="mt-2" type="checkbox" name="keybord_active" value="1">
                                         @endif
                                         <label class="mt-2"><strong>{{trans('file.Touchscreen keybord')}}</strong></label>
-                                    </div>
+                                    </div> --}}
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
@@ -67,14 +67,40 @@
                                         <label>{{trans('file.Displayed Number of Product Row')}} *</label>
                                         <input type="number" name="product_number" class="form-control" value="@if($lims_pos_setting_data){{$lims_pos_setting_data->product_number}}@endif" required />
                                     </div>
-                                    <div class="form-group">
+                                    {{-- <div class="form-group">
                                         @if($lims_pos_setting_data && $lims_pos_setting_data->is_table)
                                         <input class="mt-2" type="checkbox" name="is_table" value="1" checked>
                                         @else
                                         <input class="mt-2" type="checkbox" name="is_table" value="1">
                                         @endif
                                         <label class="mt-2"><strong>{{trans('file.Table Management')}}</strong></label>
-                                    </div>
+                                    </div> --}}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    @if($lims_pos_setting_data && $lims_pos_setting_data->keybord_active)
+                                    <input class="mt-2" type="checkbox" name="keybord_active" value="1" checked>
+                                    @else
+                                    <input class="mt-2" type="checkbox" name="keybord_active" value="1">
+                                    @endif
+                                    <label class="mt-2"><strong>{{trans('file.Touchscreen keybord')}}</strong></label>
+                                </div>
+                                <div class="col-md-4">
+                                    @if($lims_pos_setting_data && $lims_pos_setting_data->is_table)
+                                    <input class="mt-2" type="checkbox" name="is_table" value="1" checked>
+                                    @else
+                                    <input class="mt-2" type="checkbox" name="is_table" value="1">
+                                    @endif
+                                    <label class="mt-2"><strong>{{trans('file.Table Management')}}</strong></label>
+                                </div>
+                                <div class="col-md-4">
+                                    @if($lims_pos_setting_data && $lims_pos_setting_data->send_sms)
+                                    <input class="mt-2" type="checkbox" name="send_sms" value="1" checked>
+                                    @else
+                                    <input class="mt-2" type="checkbox" name="send_sms" value="1">
+                                    @endif
+                                    <label class="mt-2"><strong>{{trans('file.Send SMS After Sale')}}</strong></label>
                                 </div>
                             </div>
                             <hr>

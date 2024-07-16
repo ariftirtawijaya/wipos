@@ -118,10 +118,10 @@
                         $purchased_qty = 0;
                         foreach ($product_purchase_data as $product_purchase) {
                             $unit = DB::table('units')->find($product_purchase->purchase_unit_id);
-                            if($unit->operator == '*'){
+                            if($unit && $unit->operator == '*'){
                                 $purchased_qty += $product_purchase->qty * $unit->operation_value;
                             }
-                            elseif($unit->operator == '/'){
+                            elseif($unit && $unit->operator == '/'){
                                 $purchased_qty += $product_purchase->qty / $unit->operation_value;
                             }
                         }

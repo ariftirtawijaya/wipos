@@ -1,8 +1,22 @@
 @extends('backend.layout.main')
 
+@if(in_array('ecommerce',explode(',',$general_setting->modules)))
+@push('css')
+<style>
+.search_result {border:1px solid #e4e6fc;border-radius:5px;overflow-y: scroll;}
+.search_result > div, .selected_items > div {border-top:1px solid #e4e6fc;cursor:pointer;display:flex;align-items:center;padding: 10px;position: relative;}
+.search_result > div > img, .selected_items > div > img {margin-right: 10px;max-width: 40px;}
+.search_result > div h4, .selected_items > div h4 {font-size: 0.9rem;}
+.search_result > div i {color:#54b948;position:absolute;right:5px;top:30%}
+.search_result div:first-child {border-top:none}
+.selected_items .remove_item {position: absolute;right: 20px;top:20px};
+</style>
+@endpush
+@endif
+
 @section('content')
 <section class="forms">
-    <div class="container-fluid">
+    <div class="container-fluid"> 
         <div class="row">
             <div class="col-md-12">
                 <div class="card">
@@ -94,25 +108,29 @@
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label>{{trans('file.Brand')}}</strong> </label>
-                                        <div class="input-group">
+                                        <div class="input-group pos">
                                           <select name="brand_id" class="selectpicker form-control" data-live-search="true" data-live-search-style="begins" title="Select Brand...">
                                             @foreach($lims_brand_list as $brand)
                                                 <option value="{{$brand->id}}">{{$brand->title}}</option>
                                             @endforeach
                                           </select>
+                                          <button type="button" class="btn btn-default btn-sm" data-toggle="modal" data-target="#addBrand"><i class="dripicons-plus"></i></button>
                                       </div>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label>{{trans('file.category')}} *</strong> </label>
-                                        <div class="input-group">
+                                        <div class="input-group pos">
                                           <select name="category_id" required class="selectpicker form-control" data-live-search="true" data-live-search-style="begins" title="Select Category...">
                                             @foreach($lims_category_list as $category)
                                                 <option value="{{$category->id}}">{{$category->name}}</option>
                                             @endforeach
                                           </select>
-                                      </div>
+                                          <div class="input-group-append">
+                                            <button type="button" class="btn btn-default btn-sm category-model" data-toggle="modal" data-target="#category-modal"><i class="dripicons-plus"></i></button>
+                                          </div>
+                                        </div>
                                       <span class="validation-msg"></span>
                                     </div>
                                 </div>
@@ -169,6 +187,12 @@
                                 </div>
                                 <div class="col-md-4">
                                     <div class="form-group">
+                                        <label>{{trans('file.Wholesale Price')}}</strong> </label>
+                                        <input type="number" name="wholesale_price" class="form-control" step="any">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
                                         <label>{{trans('file.Daily Sale Objective')}}</strong></label> <i class="dripicons-question" data-toggle="tooltip" title="{{trans('file.Minimum qty which must be sold in a day. If not, you will be notified on dashboard. But you have to set up the cron job properly for that. Follow the documentation in that regard.')}}"></i>
                                         <input type="number" name="daily_sale_objective" class="form-control" step="any">
                                     </div>
@@ -181,15 +205,20 @@
                                 </div>
                                 <div class="col-md-4">
                                     <div class="form-group">
-                                        <label>{{trans('file.Product Tax')}}</strong> </label>
-                                        <select name="tax_id" class="form-control selectpicker">
+                                        <label>{{trans('file.Product Tax')}}</label>
+                                        <div class="input-group pos">
+
+                                        <select name="tax_id" class="selectpicker form-control" style="width: 100px">
                                             <option value="">No Tax</option>
                                             @foreach($lims_tax_list as $tax)
                                                 <option value="{{$tax->id}}">{{$tax->name}}</option>
                                             @endforeach
                                         </select>
+                                        <button type="button" class="btn btn-default btn-sm" data-toggle="modal" data-target="#addTax"><i class="dripicons-plus"></i></button>
+                                    </div>
                                     </div>
                                 </div>
+                              
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label>{{trans('file.Tax Method')}}</strong> </label> <i class="dripicons-question" data-toggle="tooltip" title="{{trans('file.Exclusive: Poduct price = Actual product price + Tax. Inclusive: Actual product price = Product price - Tax')}}"></i>
@@ -407,6 +436,15 @@
                                     <h5><input name="is_sync_disable" type="checkbox" id="is_sync_disable" value="1">&nbsp; {{trans('file.Disable Woocommerce Sync')}}</h5>
                                 </div>
                                 @endif
+
+                                @if(in_array('ecommerce',explode(',',$general_setting->modules)))
+                                <div class="col-md-12 mt-3">
+                                    <h5><input name="is_online" type="checkbox" id="is_online" value="1" checked>&nbsp; {{trans('file.Sell Online')}}</h5>
+                                </div>
+                                <div class="col-md-12 mt-3">
+                                    <h5><input name="in_stock" type="checkbox" id="in_stock" value="1" checked>&nbsp; {{trans('file.In Stock')}}</h5>
+                                </div>
+                                @endif
                             </div>
                             @if(in_array('ecommerce',explode(',',$general_setting->modules)))
                             <div class="row">
@@ -430,10 +468,18 @@
                                     <label>{{ __('Meta Description') }} *</label>
                                     <input type="text" name="meta_description" class="form-control" value="">
                                 </div>
+                                <div class="col-md-12 form-group">
+                                    <label>{{trans('file.Products')}}</label>
+                                    <input type="text" id="search_products" class="form-control">
+                                    <div class="search_result"></div>
+                                    <h4 class="mt-5 mb-3">Selected Items</h4>
+                                    <div class="selected_items"></div>
+                                    <textarea class="selected_ids hidden no-tiny" name="products"></textarea>
+                                </div>
                             </div>
                             @endif
                             <div class="form-group mt-3">
-                                <input type="button" value="{{trans('file.submit')}}" id="submit-btn" class="btn btn-primary">
+                                <button type="submit" id="submit-btn" class="btn btn-primary">{{trans('file.add_product')}}</button>
                             </div>
                         </form>
                     </div>
@@ -441,12 +487,133 @@
             </div>
         </div>
     </div>
-</section>
-
-
+    <!-- Brand Create Modal Start -->
+    <div id="addBrand" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true" class="modal fade text-left">
+        <div role="document" class="modal-dialog">
+          <div class="modal-content">
+            <form id="brand-form">
+            <div class="modal-header">
+              <h5 id="exampleModalLabel" class="modal-title">{{trans('file.Add Brand')}}</h5>
+              <button type="button" data-dismiss="modal" aria-label="Close" class="close"><span aria-hidden="true"><i class="dripicons-cross"></i></span></button>
+            </div>
+            <div class="modal-body">
+              <p class="italic"><small>{{trans('file.The field labels marked with * are required input fields')}}.</small></p>
+                <div class="form-group">
+                    <label>{{trans('file.Title')}} *</label>
+                    {{-- {{Form::text('title',null,array('required' => 'required', 'class' => 'form-control', 'placeholder' => 'Type brand title...'))}} --}}
+                    <input type="text" name="title" class="form-control" placeholder="Type brand title..." required>
+                </div>
+                <div class="form-group">
+                    <label>{{trans('file.Image')}}</label>
+                    {{-- {{Form::file('image', array('class' => 'form-control'))}} --}}
+                    <input type="file" name="image" class="form-control">
+                </div>
+                @if(in_array('ecommerce',explode(',',$general_setting->modules)))
+                <div class="row">
+                    <div class="col-md-12 mt-3">
+                        <h6><strong>{{ __('For SEO') }}</strong></h6>
+                        <hr>
+                    </div>
+                    <div class="col-md-12 form-group">
+                        <label>{{ __('Meta Title') }}</label>
+                        {{Form::text('page_title',null,array('class' => 'form-control', 'placeholder' => 'Meta Title...'))}}
+                    </div>
+                    <div class="col-md-12 form-group">
+                        <label>{{ __('Meta Description') }}</label>
+                        {{Form::text('short_description',null,array('class' => 'form-control', 'placeholder' => 'Meta Description...'))}}
+                    </div>
+                </div>
+                @endif
+                <div class="form-group">
+                    <input type="hidden" name="ajax" value="1">
+                    <button type="button" class="btn btn-primary brand-submit-btn">{{trans('file.submit')}}</button>
+                </div>
+            </div>
+            </form>
+          </div>
+        </div>
+    </div>
+    <!-- Brand Create Modal End -->
+    <!-- Tax Create Modal Start -->
+    <div id="addTax" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true" class="modal fade text-left">
+        <div role="document" class="modal-dialog">
+            <div class="modal-content">
+                {!! Form::open(['route' => 'tax.store', 'method' => 'post', 'id' => 'tax-form']) !!}
+                <div class="modal-header">
+                    <h5 id="exampleModalLabel" class="modal-title">{{trans('file.Add Tax')}}</h5>
+                    <button type="button" data-dismiss="modal" aria-label="Close" class="close"><span aria-hidden="true"><i class="dripicons-cross"></i></span></button>
+                </div>
+                <div class="modal-body">
+                    <p class="italic"><small>{{trans('file.The field labels marked with * are required input fields')}}.</small></p>
+                    <form>
+                        <div class="form-group">
+                        <label>{{trans('file.Tax Name')}} *</label>
+                        {{Form::text('name',null,array('required' => 'required', 'class' => 'form-control'))}}
+                        </div>
+                        <div class="form-group">
+                            <label>{{trans('file.Rate')}}(%) *</label>
+                            {{Form::number('rate',null,array('required' => 'required', 'class' => 'form-control', 'step' => 'any'))}}
+                        </div>
+                        <input type="hidden" name="ajax" value="1">
+                        <button type="button" class="btn btn-primary tax-submit-btn">{{trans('file.submit')}}</button>
+                    </form>
+                </div>
+            {{ Form::close() }}
+            </div>
+        </div>
+    </div>
+    <!-- Tax Create Modal End -->
+    </section>
 @endsection
 @push('scripts')
 <script type="text/javascript">
+    
+    $.ajaxSetup({
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        }
+    });
+
+    @if(in_array('ecommerce',explode(',',$general_setting->modules)))
+    $('#search_products').on('input', function() {
+        var item = $(this).val();
+        $('.search_result').html('<div class="d-block text-center"><div class="spinner-border text-secondary" role="status"><span class="sr-only">Loading...</span></div></div>');
+
+        if(item.length >= 3){
+            $.ajax({
+                type: "get",
+                url: "{{url('search')}}/" + item,
+                success: function(data) {
+                    $('.search_result').html('').css('height','200px');
+                    $.each(data,function(key, value){ 
+                        var image = value.image.split(',');
+                        $('.search_result').append('<div data-id="'+value.id+'"><img src="{{asset("public/images/product/small/")}}/'+image[0]+'"><h4>'+value.name+'</h4><i class="dripicons-checkmark d-none"></i></div>')
+                    })
+                }
+            })  
+        } else if (item.length < 3) {
+            $('.search_result').html('');
+        }
+    });
+
+    $(document).on('click','.search_result div',function(){
+        $(this).find('i').removeClass('d-none');
+        var selected_item = '<div data-id="'+$(this).data('id')+'">'+$(this).html()+'<span class="remove_item"><i class="dripicons-cross"></i></span></div>';
+        if ($('.selected_ids').html().indexOf($(this).data('id')) === -1){
+            $('.selected_items').prepend(selected_item);
+            $('.selected_ids').append($(this).data('id')+','); 
+            $('.selected_items .dripicons-checkmark').addClass('d-none');
+        }       
+    });
+
+    $(document).on('click','.remove_item',function(){
+        var item = $(this).parent().remove();
+        var remove_id = $(this).parent().data('id');
+        var selected_ids = $('.selected_ids').html().replace(remove_id+',','');
+        $('.selected_ids').html(selected_ids);
+        
+    });
+    @endif
 
     $("ul#product").siblings('a').attr('aria-expanded','true');
     $("ul#product").addClass("show");
@@ -485,12 +652,6 @@
     var numberOfWarehouse = <?php echo json_encode(count($lims_warehouse_list)) ?>;
 
     $('[data-toggle="tooltip"]').tooltip();
-
-    $.ajaxSetup({
-        headers: {
-            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-        }
-    });
 
     $('#genbutton').on("click", function(){
       $.get('gencode', function(data){
@@ -938,7 +1099,7 @@
     //end of variant related js
 
     tinymce.init({
-      selector: 'textarea',
+      selector: 'textarea:not(.no-tiny)',
       height: 130,
       plugins: [
         'advlist autolink lists link image charmap print preview anchor textcolor',
@@ -1244,10 +1405,10 @@
                 alert('Product code length must be less than 8');
                 return false;
             }
-            else if(barcode_symbology == 'EAN13' && product_code.length > 12){
+            /*else if(barcode_symbology == 'EAN13' && product_code.length > 12){
                 alert('Product code length must be less than 13');
                 return false;
-            }
+            }*/
         }
 
         if( $("#type").val() == 'combo' ) {
@@ -1267,6 +1428,10 @@
         $("input[name='price']").prop('disabled',false);
         return true;
     }
+
+    /*$('#submit-btn').on("click", function (e) {
+        $('#submit-btn').attr('disabled','true').html('<span class="spinner-border text-light" role="status"></span> {{trans("file.Saving")}}...');
+    })*/
 
     $(".dropzone").sortable({
         items:'.dz-preview',
@@ -1314,6 +1479,7 @@
             $('#submit-btn').on("click", function (e) {
                 e.preventDefault();
                 if ( $("#product-form").valid() && validate() ) {
+                    $('#submit-btn').attr('disabled','true').html('<span class="spinner-border text-light" role="status"></span> {{trans("file.Saving")}}...');
                     tinyMCE.triggerSave();
                     if(myDropzone.getAcceptedFiles().length) {
                         myDropzone.processQueue();
@@ -1409,6 +1575,58 @@
             this.removeAllFiles(true);
         }
     });
-
+    // brand create ajax start
+    $('.brand-submit-btn').on("click", function() {
+        $.ajax({
+            type:'POST',
+            url:'{{route('brand.store')}}',
+            data: $("#brand-form").serialize(),
+            success:function(response) {
+                key = response['id'];
+                value = response['title'];
+                $('select[name="brand_id"]').append('<option value="'+ key +'">'+ value +'</option>');
+                $('select[name="brand_id"]').val(key);
+                $('.selectpicker').selectpicker('refresh');
+                $("#addBrand").modal('hide');
+            }
+        });
+    });
+    $('.category-model').on("click", function() {
+        $('.category-submit-btn').prop('type', 'button');
+        $('.category-ajax-check').val(1);
+    });
+    // category create ajax start
+    $('.category-submit-btn').on("click", function() {
+        $.ajax({
+            type:'POST',
+            url:'{{route('category.store')}}',
+            data: $("#category-form").serialize(),
+            success:function(response) {
+                key = response['id'];
+                value = response['name'];
+                $('select[name="category_id"]').append('<option value="'+ key +'">'+ value +'</option>');
+                $('select[name="category_id"]').val(key);
+                $('.selectpicker').selectpicker('refresh');
+                $("#category-modal").modal('hide');
+            }
+        });
+    });
+    // Tax Ajax Create
+        // category create ajax start
+        $('.tax-submit-btn').on("click", function() {
+        $.ajax({
+            type:'POST',
+            url:'{{route('tax.store')}}',
+            data: $("#tax-form").serialize(),
+            success:function(response) {
+                key = response['id'];
+                value = response['name'];
+                $('select[name="tax_id"]').append('<option value="'+ key +'">'+ value +'</option>');
+                $('select[name="tax_id"]').val(key);
+                $('.selectpicker').selectpicker('refresh');
+                $("#addTax").modal('hide');
+            }
+        });
+    });
 </script>
 @endpush

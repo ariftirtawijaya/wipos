@@ -1639,7 +1639,7 @@
             	$("tr.transfer-row").addClass('d-none');
             if(!features.includes("delivery"))
             	$("span.delivery-section").addClass('d-none');
-            if(!features.includes("stock_count_and_adjustment ")) {
+            if(!features.includes("stock_count_and_adjustment")) {
             	$("span.stock-count-section").addClass('d-none');
             	$("span.adjustment-section").addClass('d-none');
             }

@@ -33,6 +33,9 @@ class CustomFieldController extends Controller
 
     public function store(Request $request)
     {
+        if(!env('USER_VERIFIED'))
+            return redirect()->back()->with('not_permitted', 'This feature is disable for demo!');
+            
         $data = $request->all();
         //adding column to specific database
         if($data['belongs_to'] == 'sale')
@@ -109,6 +112,8 @@ class CustomFieldController extends Controller
 
     public function update(Request $request, $id)
     {
+        if(!env('USER_VERIFIED'))
+            return redirect()->back()->with('not_permitted', 'This feature is disable for demo!');
         $data = $request->all();
         $lims_custom_field_data = CustomField::find($id);
         if($data['belongs_to'] == 'sale')
@@ -194,6 +199,9 @@ class CustomFieldController extends Controller
 
     public function destroy($id)
     {
+        if(!env('USER_VERIFIED'))
+            return redirect()->back()->with('not_permitted', 'This feature is disable for demo!');
+            
         $custom_field_data = CustomField::find($id);
         if($custom_field_data->belongs_to == 'sale')
             $table_name = 'sales';

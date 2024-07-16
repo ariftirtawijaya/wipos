@@ -12,6 +12,7 @@
                     <div class="card-body">
                         <h4 class="text-center text-info">Your current version is <span>{{env('VERSION')}}</span></h4>
                         <p>Please wait for upcoming version</p>
+                        <a class="btn btn-primary" href="{{url('/dashboard')}}">Go to dashboard</a>
                     </div>
                 </div>
         </section>

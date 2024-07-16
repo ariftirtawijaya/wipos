@@ -28,11 +28,13 @@ use App\Mail\QuotationDetails;
 use Mail;
 use Illuminate\Support\Facades\Validator;
 use App\Models\MailSetting;
+use App\Traits\MailInfo;
+use App\Traits\StaffAccess;
+use App\Traits\TenantInfo;
 
 class QuotationController extends Controller
 {
-    use \App\Traits\TenantInfo;
-    use \App\Traits\MailInfo;
+    use TenantInfo, MailInfo, StaffAccess;
 
     public function index(Request $request)
     {
@@ -85,6 +87,17 @@ class QuotationController extends Controller
                         ->whereDate('created_at', '>=' ,$request->input('starting_date'))
                         ->whereDate('created_at', '<=' ,$request->input('ending_date'))
                         ->count();
+        //check staff access
+        elseif(Auth::user()->role_id > 2 && config('staff_access') == 'warehouse')
+            $totalData = Quotation::where('warehouse_id', Auth::user()->warehouse_id)
+            ->whereDate('created_at', '>=' ,$request->input('starting_date'))
+            ->whereDate('created_at', '<=' ,$request->input('ending_date'))
+            ->count();
+        elseif($warehouse_id != 0)
+            $totalData = Quotation::where('warehouse_id', $warehouse_id)
+                        ->whereDate('created_at', '>=' ,$request->input('starting_date'))
+                        ->whereDate('created_at', '<=' ,$request->input('ending_date'))
+                        ->count();
         elseif($warehouse_id != 0)
             $totalData = Quotation::where('warehouse_id', $warehouse_id)
                         ->whereDate('created_at', '>=' ,$request->input('starting_date'))
@@ -113,6 +126,14 @@ class QuotationController extends Controller
                             ->limit($limit)
                             ->orderBy($order, $dir)
                             ->get();
+            elseif(Auth::user()->role_id > 2 && config('staff_access') == 'warehouse')
+                $quotations = Quotation::with('biller', 'customer', 'supplier', 'user')->offset($start)
+                            ->where('warehouse_id', Auth::user()->warehouse_id)
+                            ->whereDate('created_at', '>=' ,$request->input('starting_date'))
+                            ->whereDate('created_at', '<=' ,$request->input('ending_date'))
+                            ->limit($limit)
+                            ->orderBy($order, $dir)
+                            ->get();     
             elseif($warehouse_id != 0)
                 $quotations = Quotation::with('biller', 'customer', 'supplier', 'user')->offset($start)
                             ->where('warehouse_id', $warehouse_id)
@@ -180,6 +201,57 @@ class QuotationController extends Controller
                             ->orwhere([
                                 ['suppliers.name', 'LIKE', "%{$search}%"],
                                 ['quotations.user_id', Auth::id()]
+                            ])
+                            ->count();
+            }
+            elseif(Auth::user()->role_id > 2 && config('staff_access') == 'warehouse') {
+                $quotations =  Quotation::select('quotations.*')
+                            ->with('biller', 'customer', 'supplier', 'user')
+                            ->join('billers', 'quotations.biller_id', '=', 'billers.id')
+                            ->join('customers', 'quotations.customer_id', '=', 'customers.id')
+                            ->leftJoin('suppliers', 'quotations.supplier_id', '=', 'suppliers.id')
+                            ->whereDate('quotations.created_at', '=' , date('Y-m-d', strtotime(str_replace('/', '-', $search))))
+                            ->where('quotations.user_id', Auth::id())
+                            ->orwhere([
+                                ['quotations.reference_no', 'LIKE', "%{$search}%"],
+                                ['quotations.warehouse_id', Auth::user()->warehouse_id]
+                            ])
+                            ->orwhere([
+                                ['billers.name', 'LIKE', "%{$search}%"],
+                                ['quotations.warehouse_id', Auth::user()->warehouse_id]
+                            ])
+                            ->orwhere([
+                                ['customers.name', 'LIKE', "%{$search}%"],
+                                ['quotations.warehouse_id', Auth::user()->warehouse_id]
+                            ])
+                            ->orwhere([
+                                ['suppliers.name', 'LIKE', "%{$search}%"],
+                                ['quotations.warehouse_id', Auth::user()->warehouse_id]
+                            ])
+                            ->offset($start)
+                            ->limit($limit)
+                            ->orderBy($order,$dir)->get();
+
+                $totalFiltered = Quotation::join('billers', 'quotations.biller_id', '=', 'billers.id')
+                            ->join('customers', 'quotations.customer_id', '=', 'customers.id')
+                            ->leftJoin('suppliers', 'quotations.supplier_id', '=', 'suppliers.id')
+                            ->whereDate('quotations.created_at', '=' , date('Y-m-d', strtotime(str_replace('/', '-', $search))))
+                            ->where('quotations.user_id', Auth::id())
+                            ->orwhere([
+                                ['quotations.reference_no', 'LIKE', "%{$search}%"],
+                                ['quotations.warehouse_id', Auth::user()->warehouse_id]
+                            ])
+                            ->orwhere([
+                                ['billers.name', 'LIKE', "%{$search}%"],
+                                ['quotations.warehouse_id', Auth::user()->warehouse_id]
+                            ])
+                            ->orwhere([
+                                ['customers.name', 'LIKE', "%{$search}%"],
+                                ['quotations.warehouse_id', Auth::user()->warehouse_id]
+                            ])
+                            ->orwhere([
+                                ['suppliers.name', 'LIKE', "%{$search}%"],
+                                ['quotations.warehouse_id', Auth::user()->warehouse_id]
                             ])
                             ->count();
             }
@@ -580,7 +652,7 @@ class QuotationController extends Controller
         $product_code = explode("(", $request['data']);
         $product_code[0] = rtrim($product_code[0], " ");
         $product_variant_id = null;
-        $lims_product_data = Product::where('code', $product_code[0])->first();
+        $lims_product_data = Product::where([ ['code', $product_code[0]], ['is_active', true]])->first();
         if(!$lims_product_data) {
             $lims_product_data = Product::join('product_variants', 'products.id', 'product_variants.product_id')
                 ->select('products.*', 'product_variants.id as product_variant_id', 'product_variants.item_code', 'product_variants.additional_price')

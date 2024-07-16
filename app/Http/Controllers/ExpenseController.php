@@ -7,6 +7,7 @@ use App\Models\Expense;
 use App\Models\Account;
 use App\Models\Warehouse;
 use App\Models\CashRegister;
+use App\Traits\StaffAccess;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Auth;
@@ -14,6 +15,8 @@ use DB;
 
 class ExpenseController extends Controller
 {
+    use StaffAccess;
+
     public function index(Request $request)
     {
         $role = Role::find(Auth::user()->role_id);
@@ -56,8 +59,8 @@ class ExpenseController extends Controller
         $warehouse_id = $request->input('warehouse_id');
         $q = Expense::whereDate('created_at', '>=' ,$request->input('starting_date'))
                      ->whereDate('created_at', '<=' ,$request->input('ending_date'));
-        if(Auth::user()->role_id > 2 && config('staff_access') == 'own')
-            $q = $q->where('user_id', Auth::id());
+        //check staff access
+        $this->staffAccessCheck($q);
         if($warehouse_id)
             $q = $q->where('warehouse_id', $warehouse_id);
 
@@ -78,8 +81,8 @@ class ExpenseController extends Controller
                 ->offset($start)
                 ->limit($limit)
                 ->orderBy($order, $dir);
-            if(Auth::user()->role_id > 2 && config('staff_access') == 'own')
-                $q = $q->where('user_id', Auth::id());
+            //check staff access
+            $this->staffAccessCheck($q);
             if($warehouse_id)
                 $q = $q->where('warehouse_id', $warehouse_id);
             $expenses = $q->get();
@@ -98,6 +101,17 @@ class ExpenseController extends Controller
                                 ->orwhere([
                                     ['reference_no', 'LIKE', "%{$search}%"],
                                     ['user_id', Auth::id()]
+                                ])
+                                ->get();
+                $totalFiltered = $q->where('expenses.user_id', Auth::id())->count();
+            }
+            elseif(Auth::user()->role_id > 2 && config('staff_access') == 'warehouse') {
+                $expenses =  $q->select('expenses.*')
+                                ->with('warehouse', 'expenseCategory')
+                                ->where('expenses.user_id', Auth::id())
+                                ->orwhere([
+                                    ['reference_no', 'LIKE', "%{$search}%"],
+                                    ['warehouse_id', Auth::user()->warehouse_id]
                                 ])
                                 ->get();
                 $totalFiltered = $q->where('expenses.user_id', Auth::id())->count();

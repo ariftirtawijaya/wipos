@@ -250,150 +250,170 @@
 
 @push('scripts')
 <script type="text/javascript">
-    $("ul#return").siblings('a').attr('aria-expanded','true');
-    $("ul#return").addClass("show");
-    $("ul#return #sale-return-menu").addClass("active");
-// array data with selection
-var product_price = [];
-var product_discount = [];
-var tax_rate = [];
-var tax_name = [];
-var tax_method = [];
-var unit_name = [];
-var unit_operator = [];
-var unit_operation_value = [];
-var is_imei = [];
+    $('.sale-return-form').on('submit', function(e) {
+        // Flag to track if any checkbox is checked
+        var anyCheckboxChecked = false;
 
-// temporary array
-var temp_unit_name = [];
-var temp_unit_operator = [];
-var temp_unit_operation_value = [];
-
-var rowindex;
-var customer_group_rate;
-var row_product_price;
-var role_id = <?php echo json_encode(Auth::user()->role_id) ?>;
-var currency = <?php echo json_encode($currency) ?>;
-var changeSaleStatus;
-
-$('.selectpicker').selectpicker({
-    style: 'btn-link',
-});
-
-$('[data-toggle="tooltip"]').tooltip();
-
-//choosing the returned product
-$("#myTable").on("change", ".is-return", function () {
-    calculateTotal();
-});
-
-//Change quantity
-$("#myTable").on('input', '.qty', function() {
-    rowindex = $(this).closest('tr').index();
-    if($(this).val() < 1 && $(this).val() != '') {
-      $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ') .qty').val(1);
-      alert("Quantity can't be less than 1");
-    }
-    calculateTotal();
-});
-
-$('select[name="order_tax_rate"]').on("change", function() {
-    calculateGrandTotal();
-});
-
-function calculateTotal() {
-    var total_qty = 0;
-    var total_discount = 0;
-    var total_tax = 0;
-    var total = 0;
-    var item = 0;
-    changeSaleStatus = 1;
-    $(".is-return").each(function(i) {
-        if ($(this).is(":checked")) {
-            var actual_qty = $('table.order-list tbody tr:nth-child(' + (i + 1) + ') .actual-qty').val();
-            var qty = $('table.order-list tbody tr:nth-child(' + (i + 1) + ') .qty').val();
-            if(qty != actual_qty) {
-                changeSaleStatus = 0;
+        // Iterate through all checkboxes in the form
+        $('.is-return').each(function() {
+            if ($(this).is(':checked')) {
+                anyCheckboxChecked = true;
+                return false; // Exit loop if a checked checkbox is found
             }
-            if(qty > actual_qty) {
-                alert('Quantity can not be bigger than the actual quantity!');
-                qty = actual_qty;
-                $('table.order-list tbody tr:nth-child(' + (i + 1) + ') .qty').val(actual_qty);
-            }
-            var discount = $('table.order-list tbody tr:nth-child(' + (i + 1) + ') .discount').text();
-            var tax = $('table.order-list tbody tr:nth-child(' + (i + 1) + ') .unit-tax-value').val() * qty;
-            var unit_price = $('table.order-list tbody tr:nth-child(' + (i + 1) + ') .unit-price').val();
+        });
 
-            total_qty += parseFloat(qty);
-            total_discount += parseFloat(discount);
-            total_tax += parseFloat(tax);
-            total += parseFloat(unit_price * qty);
-            $('table.order-list tbody tr:nth-child(' + (i + 1) + ') .subtotal-value').val(unit_price * qty);
-            $('table.order-list tbody tr:nth-child(' + (i + 1) + ') .sub-total').text(parseFloat(unit_price * qty).toFixed({{$general_setting->decimal}}));
-            $('table.order-list tbody tr:nth-child(' + (i + 1) + ') .tax-value').val(parseFloat(tax).toFixed({{$general_setting->decimal}}));
-            $('table.order-list tbody tr:nth-child(' + (i + 1) + ') .tax').text(parseFloat(tax).toFixed({{$general_setting->decimal}}));
-            item++;
-        }
-        else {
-            changeSaleStatus = 0;
+        // If no checkboxes are checked, show an alert and prevent form submission
+        if (!anyCheckboxChecked) {
+            alert("Please select at least one product.");
+            e.preventDefault(); // Prevent form submission
         }
     });
 
-    if(changeSaleStatus)
-        $('input[name="change_sale_status"]').val(changeSaleStatus);
 
-    $('input[name="total_qty"]').val(total_qty);
-    $('input[name="total_discount"]').val(total_discount.toFixed({{$general_setting->decimal}}));
-    $('input[name="total_tax"]').val(total_tax.toFixed({{$general_setting->decimal}}));
-    $('input[name="total_price"]').val(total.toFixed({{$general_setting->decimal}}));
-    $('input[name="item"]').val(item);
-    item += '(' + total_qty + ')';
-    $('#item').text(item);
+    $("ul#return").siblings('a').attr('aria-expanded','true');
+    $("ul#return").addClass("show");
+    $("ul#return #sale-return-menu").addClass("active");
+    // array data with selection
+    var product_price = [];
+    var product_discount = [];
+    var tax_rate = [];
+    var tax_name = [];
+    var tax_method = [];
+    var unit_name = [];
+    var unit_operator = [];
+    var unit_operation_value = [];
+    var is_imei = [];
 
-    calculateGrandTotal();
-}
+    // temporary array
+    var temp_unit_name = [];
+    var temp_unit_operator = [];
+    var temp_unit_operation_value = [];
 
-function calculateGrandTotal() {
-    var total_qty = parseFloat($('input[name="total_qty"]').val());
-    var subtotal = parseFloat($('input[name="total_price"]').val());
-    var order_tax = parseFloat($('select[name="order_tax_rate"]').val());
-    var order_tax = subtotal * (order_tax / 100);
-    var grand_total = subtotal + order_tax;
+    var rowindex;
+    var customer_group_rate;
+    var row_product_price;
+    var role_id = <?php echo json_encode(Auth::user()->role_id) ?>;
+    var currency = <?php echo json_encode($currency) ?>;
+    var changeSaleStatus;
 
+    $('.selectpicker').selectpicker({
+        style: 'btn-link',
+    });
 
-    $('#subtotal').text(subtotal.toFixed({{$general_setting->decimal}}));
-    $('#order_tax').text(order_tax.toFixed({{$general_setting->decimal}}));
-    $('input[name="order_tax"]').val(order_tax.toFixed({{$general_setting->decimal}}));
-    $('#grand_total').text(grand_total.toFixed({{$general_setting->decimal}}));
-    $('input[name="grand_total"]').val(grand_total.toFixed({{$general_setting->decimal}}));
-}
+    $('[data-toggle="tooltip"]').tooltip();
 
-$(window).keydown(function(e){
-    if (e.which == 13) {
-        var $targ = $(e.target);
-        if (!$targ.is("textarea") && !$targ.is(":button,:submit")) {
-            var focusNext = false;
-            $(this).find(":input:visible:not([disabled],[readonly]), a").each(function(){
-                if (this === e.target) {
-                    focusNext = true;
-                }
-                else if (focusNext){
-                    $(this).focus();
-                    return false;
-                }
-            });
-            return false;
+    //choosing the returned product
+    $("#myTable").on("change", ".is-return", function () {
+        calculateTotal();
+    });
+
+    //Change quantity
+    $("#myTable").on('input', '.qty', function() {
+        rowindex = $(this).closest('tr').index();
+        if($(this).val() < 1 && $(this).val() != '') {
+        $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ') .qty').val(1);
+        alert("Quantity can't be less than 1");
         }
-    }
-});
+        calculateTotal();
+    });
 
-$('.sale-return-form').on('submit',function(e){
-    var rownumber = $('table.order-list tbody tr:last').index();
-    if (rownumber < 0) {
-        alert("Please insert product to order table!")
-        e.preventDefault();
+    $('select[name="order_tax_rate"]').on("change", function() {
+        calculateGrandTotal();
+    });
+
+    function calculateTotal() {
+        var total_qty = 0;
+        var total_discount = 0;
+        var total_tax = 0;
+        var total = 0;
+        var item = 0;
+        changeSaleStatus = 1;
+        $(".is-return").each(function(i) {
+            if ($(this).is(":checked")) {
+                var actual_qty = parseFloat($('table.order-list tbody tr:nth-child(' + (i + 1) + ') .actual-qty').val());
+                var qty = parseFloat($('table.order-list tbody tr:nth-child(' + (i + 1) + ') .qty').val());
+                if(qty != actual_qty) {
+                    changeSaleStatus = 0;
+                }
+                if(qty > actual_qty) {
+                    alert('Quantity can not be bigger than the actual quantity!');
+                    qty = actual_qty;
+                    $('table.order-list tbody tr:nth-child(' + (i + 1) + ') .qty').val(actual_qty);
+                }
+                var discount = $('table.order-list tbody tr:nth-child(' + (i + 1) + ') .discount').text();
+                var tax = $('table.order-list tbody tr:nth-child(' + (i + 1) + ') .unit-tax-value').val() * qty;
+                var unit_price = $('table.order-list tbody tr:nth-child(' + (i + 1) + ') .unit-price').val();
+
+                total_qty += parseFloat(qty);
+                total_discount += parseFloat(discount);
+                total_tax += parseFloat(tax);
+                total += parseFloat(unit_price * qty);
+                $('table.order-list tbody tr:nth-child(' + (i + 1) + ') .subtotal-value').val(unit_price * qty);
+                $('table.order-list tbody tr:nth-child(' + (i + 1) + ') .sub-total').text(parseFloat(unit_price * qty).toFixed({{$general_setting->decimal}}));
+                $('table.order-list tbody tr:nth-child(' + (i + 1) + ') .tax-value').val(parseFloat(tax).toFixed({{$general_setting->decimal}}));
+                $('table.order-list tbody tr:nth-child(' + (i + 1) + ') .tax').text(parseFloat(tax).toFixed({{$general_setting->decimal}}));
+                item++;
+            }
+            else {
+                changeSaleStatus = 0;
+            }
+        });
+
+        if(changeSaleStatus)
+            $('input[name="change_sale_status"]').val(changeSaleStatus);
+
+        $('input[name="total_qty"]').val(total_qty);
+        $('input[name="total_discount"]').val(total_discount.toFixed({{$general_setting->decimal}}));
+        $('input[name="total_tax"]').val(total_tax.toFixed({{$general_setting->decimal}}));
+        $('input[name="total_price"]').val(total.toFixed({{$general_setting->decimal}}));
+        $('input[name="item"]').val(item);
+        item += '(' + total_qty + ')';
+        $('#item').text(item);
+
+        calculateGrandTotal();
     }
-});
+
+    function calculateGrandTotal() {
+        var total_qty = parseFloat($('input[name="total_qty"]').val());
+        var subtotal = parseFloat($('input[name="total_price"]').val());
+        var order_tax = parseFloat($('select[name="order_tax_rate"]').val());
+        var order_tax = subtotal * (order_tax / 100);
+        var grand_total = subtotal + order_tax;
+
+
+        $('#subtotal').text(subtotal.toFixed({{$general_setting->decimal}}));
+        $('#order_tax').text(order_tax.toFixed({{$general_setting->decimal}}));
+        $('input[name="order_tax"]').val(order_tax.toFixed({{$general_setting->decimal}}));
+        $('#grand_total').text(grand_total.toFixed({{$general_setting->decimal}}));
+        $('input[name="grand_total"]').val(grand_total.toFixed({{$general_setting->decimal}}));
+    }
+
+    $(window).keydown(function(e){
+        if (e.which == 13) {
+            var $targ = $(e.target);
+            if (!$targ.is("textarea") && !$targ.is(":button,:submit")) {
+                var focusNext = false;
+                $(this).find(":input:visible:not([disabled],[readonly]), a").each(function(){
+                    if (this === e.target) {
+                        focusNext = true;
+                    }
+                    else if (focusNext){
+                        $(this).focus();
+                        return false;
+                    }
+                });
+                return false;
+            }
+        }
+    });
+
+    $('.sale-return-form').on('submit',function(e){
+        var rownumber = $('table.order-list tbody tr:last').index();
+        if (rownumber < 0) {
+            alert("Please insert product to order table!")
+            e.preventDefault();
+        }
+    });
 
 </script>
 @endpush

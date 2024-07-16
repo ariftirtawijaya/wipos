@@ -13,14 +13,14 @@ class Controller extends BaseController
 
     public function setSuccessMessage($message)
 	{
-    	session()->flash('customMessage',$message);
+    	session()->flash('message',$message);
     	session()->flash('type','success');
         return redirect()->back();
 	}
 
 	public function setErrorMessage($message)
 	{
-		session()->flash('customMessage',$message);
+		session()->flash('not_permitted',$message);
 		session()->flash('type','danger');
         return redirect()->back();
 	}

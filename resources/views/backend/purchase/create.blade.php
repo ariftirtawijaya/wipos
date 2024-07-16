@@ -473,9 +473,10 @@
     //Change quantity
     $("#myTable").on('input', '.qty', function() {
         rowindex = $(this).closest('tr').index();
+        console.log($(this).val());
         if($(this).val() < 1 && $(this).val() != '') {
-        $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ') .qty').val(1);
-        alert("Quantity can't be less than 1");
+            $('table.order-list tbody tr:nth-child(' + (rowindex + 1) + ') .qty').val(1);
+            alert("Quantity can't be less than 1");
         }
         checkQuantity($(this).val(), true);
     });
@@ -619,13 +620,13 @@
                     temp_unit_name = (data[6]).split(',');
                     cols += '<td>' + data[0] + '<button type="button" class="edit-product btn btn-link" data-toggle="modal" data-target="#editModal"> <i class="dripicons-document-edit"></i></button></td>';
                     cols += '<td>' + data[1] + '</td>';
-                    cols += '<td><input type="number" class="form-control qty" name="qty[]" value="1" step="any" required/></td>';
+                    cols += '<td><input type="text" class="form-control qty" name="qty[]" value="1" required/></td>';
                     if($('select[name="status"]').val() == 1)
-                        cols += '<td class="recieved-product-qty d-none"><input type="number" class="form-control recieved" name="recieved[]" value="1" step="any"/></td>';
+                        cols += '<td class="recieved-product-qty d-none"><input type="text" class="form-control recieved" name="recieved[]" value="1" /></td>';
                     else if($('select[name="status"]').val() == 2)
-                        cols += '<td class="recieved-product-qty"><input type="number" class="form-control recieved" name="recieved[]" value="1" step="any"/></td>';
+                        cols += '<td class="recieved-product-qty"><input type="text" class="form-control recieved" name="recieved[]" value="1" /></td>';
                     else
-                        cols += '<td class="recieved-product-qty d-none"><input type="number" class="form-control recieved" name="recieved[]" value="0" step="any"/></td>';
+                        cols += '<td class="recieved-product-qty d-none"><input type="text" class="form-control recieved" name="recieved[]" value="0" /></td>';
                     if(data[10]) {
                         cols += '<td><input type="text" class="form-control batch-no" name="batch_no[]" required/></td>';
                         cols += '<td><input type="text" class="form-control expired-date" name="expired_date[]" required/></td>';

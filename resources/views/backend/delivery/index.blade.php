@@ -48,46 +48,48 @@
 
                     $barcode = \DNS2D::getBarcodePNG($delivery->reference_no, 'QRCODE');
                 ?>
-                <tr class="delivery-link" data-barcode="{{$barcode}}" data-delivery='["{{date($general_setting->date_format, strtotime($delivery->created_at->toDateString()))}}", "{{$delivery->reference_no}}", "{{$delivery->sale->reference_no}}", "{{$status}}", "{{$delivery->id}}", "{{$delivery->sale->customer->name}}", "{{$delivery->sale->customer->phone_number}}", "{{$delivery->sale->customer->address}}", "{{$delivery->sale->customer->city}}", "{{$delivery->note}}", "{{$delivery->user->name}}", "{{$delivery->delivered_by}}", "{{$delivery->recieved_by}}"]'>
-                    <td>{{$key}}</td>
-                    <td>{{ $delivery->reference_no }}</td>
-                    <td>{{ $customer_sale[0]->reference_no }}</td>
-                    <td>{!!$customer_sale[0]->name .'<br>'. $customer_sale[0]->phone_number!!}</td>
-                    @if($delivery->courier_id)
-                        <td>{{ $delivery->courier->name }}</td>
-                    @else
-                        <td>N/A</td>
-                    @endif
-                    <td>{{ $delivery->address }}</td>
-                    <td>{{implode(",", $product_names)}}</td>
-                    <td>{{number_format($customer_sale[0]->grand_total, 2)}}</td>
-                    @if($delivery->status == 1)
-                    <td><div class="badge badge-info">{{$status}}</div></td>
-                    @elseif($delivery->status == 2)
-                    <td><div class="badge badge-primary">{{$status}}</div></td>
-                    @else
-                    <td><div class="badge badge-success">{{$status}}</div></td>
-                    @endif
-                    <td>
-                        <div class="btn-group">
-                            <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">{{trans('file.action')}}
-                              <span class="caret"></span>
-                              <span class="sr-only">Toggle Dropdown</span>
-                            </button>
-                            <ul class="dropdown-menu edit-options dropdown-menu-right dropdown-default" user="menu">
-                                <li>
-                                    <button type="button" data-id="{{$delivery->id}}" class="open-EditCategoryDialog btn btn-link"><i class="dripicons-document-edit"></i> {{trans('file.edit')}}</button>
-                                </li>
-                                <li class="divider"></li>
-                                {{ Form::open(['route' => ['delivery.delete', $delivery->id], 'method' => 'post'] ) }}
-                                <li>
-                                  <button type="submit" class="btn btn-link" onclick="return confirmDelete()"><i class="dripicons-trash"></i> {{trans('file.delete')}}</button>
-                                </li>
-                                {{ Form::close() }}
-                            </ul>
-                        </div>
-                    </td>
-                </tr>
+                @if($delivery->sale)
+                    <tr class="delivery-link" data-barcode="{{$barcode}}" data-delivery='["{{date($general_setting->date_format, strtotime($delivery->created_at->toDateString()))}}", "{{$delivery->reference_no}}", "{{$delivery->sale->reference_no}}", "{{$status}}", "{{$delivery->id}}", "{{$delivery->sale->customer->name}}", "{{$delivery->sale->customer->phone_number}}", "{{$delivery->sale->customer->address}}", "{{$delivery->sale->customer->city}}", "{{$delivery->note}}", "{{$delivery->user->name}}", "{{$delivery->delivered_by}}", "{{$delivery->recieved_by}}"]'>
+                        <td>{{$key}}</td>
+                        <td>{{ $delivery->reference_no }}</td>
+                        <td>{{ $customer_sale[0]->reference_no }}</td>
+                        <td>{!!$customer_sale[0]->name .'<br>'. $customer_sale[0]->phone_number!!}</td>
+                        @if($delivery->courier_id)
+                            <td>{{ $delivery->courier->name }}</td>
+                        @else
+                            <td>N/A</td>
+                        @endif
+                        <td>{{ $delivery->address }}</td>
+                        <td>{{implode(",", $product_names)}}</td>
+                        <td>{{number_format($customer_sale[0]->grand_total, 2)}}</td>
+                        @if($delivery->status == 1)
+                        <td><div class="badge badge-info">{{$status}}</div></td>
+                        @elseif($delivery->status == 2)
+                        <td><div class="badge badge-primary">{{$status}}</div></td>
+                        @else
+                        <td><div class="badge badge-success">{{$status}}</div></td>
+                        @endif
+                        <td>
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">{{trans('file.action')}}
+                                  <span class="caret"></span>
+                                  <span class="sr-only">Toggle Dropdown</span>
+                                </button>
+                                <ul class="dropdown-menu edit-options dropdown-menu-right dropdown-default" user="menu">
+                                    <li>
+                                        <button type="button" data-id="{{$delivery->id}}" class="open-EditCategoryDialog btn btn-link"><i class="dripicons-document-edit"></i> {{trans('file.edit')}}</button>
+                                    </li>
+                                    <li class="divider"></li>
+                                    {{ Form::open(['route' => ['delivery.delete', $delivery->id], 'method' => 'post'] ) }}
+                                    <li>
+                                      <button type="submit" class="btn btn-link" onclick="return confirmDelete()"><i class="dripicons-trash"></i> {{trans('file.delete')}}</button>
+                                    </li>
+                                    {{ Form::close() }}
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                @endif
                 @endforeach
             </tbody>
         </table>

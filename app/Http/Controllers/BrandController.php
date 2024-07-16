@@ -7,6 +7,7 @@ use App\Models\Brand;
 use Illuminate\Validation\Rule;
 use App\Traits\TenantInfo;
 use App\Traits\CacheForget;
+use Illuminate\Support\Str;
 
 class BrandController extends Controller
 {
@@ -21,6 +22,7 @@ class BrandController extends Controller
 
     public function store(Request $request)
     {
+
         $request->title = preg_replace('/\s+/', ' ', $request->title);
         $this->validate($request, [
             'title' => [
@@ -35,6 +37,8 @@ class BrandController extends Controller
 
         $input = $request->except('image');
         $input['is_active'] = true;
+        if(in_array('ecommerce', explode(',',config('addons'))))
+            $input['slug'] = Str::slug($request->title, '-');
         $image = $request->image;
         if ($image) {
             $ext = pathinfo($image->getClientOriginalName(), PATHINFO_EXTENSION);
@@ -49,9 +53,13 @@ class BrandController extends Controller
             }
             $input['image'] = $imageName;
         }
-        Brand::create($input);
+        $brand = Brand::create($input);
         $this->cacheForget('brand_list');
-        return redirect('brand');
+
+        if($input['ajax'])
+            return $brand;
+        else 
+            return redirect('brand');
     }
 
     public function edit($id)
@@ -74,6 +82,10 @@ class BrandController extends Controller
         ]);
         $lims_brand_data = Brand::findOrFail($request->brand_id);
         $lims_brand_data->title = $request->title;
+        if(in_array('ecommerce', explode(',',config('addons')))) {
+            $lims_brand_data->page_title = $request->page_title;
+            $lims_brand_data->short_description = $request->short_description;
+        }
         $image = $request->image;
         if ($image) {
             $ext = pathinfo($image->getClientOriginalName(), PATHINFO_EXTENSION);

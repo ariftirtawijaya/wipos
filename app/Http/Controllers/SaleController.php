@@ -40,6 +40,7 @@ use App\Models\RewardPointSetting;
 use App\Models\CustomField;
 use App\Models\Table;
 use App\Models\Courier;
+use App\Models\ExternalService;
 use DB;
 use Cache;
 use App\Models\GeneralSetting;
@@ -50,6 +51,7 @@ use Auth;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use App\Mail\SaleDetails;
+use App\Mail\LogMessage;
 use App\Mail\PaymentDetails;
 use Mail;
 use Srmklive\PayPal\Services\ExpressCheckout;
@@ -57,6 +59,11 @@ use Srmklive\PayPal\Services\AdaptivePayments;
 use GeniusTS\HijriDate\Date;
 use Illuminate\Support\Facades\Validator;
 use App\Models\Currency;
+use App\Models\SmsTemplate;
+use App\Services\SmsService;
+use App\SMSProviders\TonkraSms;
+use App\ViewModels\ISmsModel;
+use PHPUnit\Framework\MockObject\Stub\ReturnSelf;
 use Salla\ZATCA\GenerateQrCode;
 use Salla\ZATCA\Tags\InvoiceDate;
 use Salla\ZATCA\Tags\InvoiceTaxAmount;
@@ -68,6 +75,13 @@ class SaleController extends Controller
 {
     use \App\Traits\TenantInfo;
     use \App\Traits\MailInfo;
+
+    private $_smsModel;
+
+    public function __construct(ISmsModel $smsModel)
+    {
+        $this->_smsModel = $smsModel;
+    }
 
     public function index(Request $request)
     {
@@ -93,6 +107,11 @@ class SaleController extends Controller
                 $payment_status = $request->input('payment_status');
             else
                 $payment_status = 0;
+
+            if($request->input('sale_type'))
+                $sale_type = $request->input('sale_type');
+            else
+                $sale_type = 0;
 
             if($request->input('starting_date')) {
                 $starting_date = $request->input('starting_date');
@@ -122,7 +141,8 @@ class SaleController extends Controller
             foreach($custom_fields as $fieldName) {
                 $field_name[] = str_replace(" ", "_", strtolower($fieldName));
             }
-            return view('backend.sale.index', compact('starting_date', 'ending_date', 'warehouse_id', 'sale_status', 'payment_status', 'lims_gift_card_list', 'lims_pos_setting_data', 'lims_reward_point_setting_data', 'lims_account_list', 'lims_warehouse_list', 'all_permission','options', 'numberOfInvoice', 'custom_fields', 'field_name', 'lims_courier_list'));
+            $smsTemplates = SmsTemplate::all();
+            return view('backend.sale.index', compact('starting_date', 'ending_date', 'warehouse_id', 'sale_status', 'payment_status', 'sale_type', 'lims_gift_card_list', 'lims_pos_setting_data', 'lims_reward_point_setting_data', 'lims_account_list', 'lims_warehouse_list', 'all_permission','options', 'numberOfInvoice', 'custom_fields', 'field_name', 'lims_courier_list','smsTemplates'));
         }
         else
             return redirect()->back()->with('not_permitted', 'Sorry! You are not allowed to access this module');
@@ -140,15 +160,20 @@ class SaleController extends Controller
         $warehouse_id = $request->input('warehouse_id');
         $sale_status = $request->input('sale_status');
         $payment_status = $request->input('payment_status');
+        $sale_type = $request->input('sale_type');
 
         $q = Sale::whereDate('created_at', '>=' ,$request->input('starting_date'))->whereDate('created_at', '<=' ,$request->input('ending_date'));
 
         if(Auth::user()->role_id > 2 && config('staff_access') == 'own')
             $q = $q->where('user_id', Auth::id());
+        elseif(Auth::user()->role_id > 2 && config('staff_access') == 'warehouse')
+            $q = $q->where('warehouse_id', Auth::user()->warehouse_id);
         if($sale_status)
             $q = $q->where('sale_status', $sale_status);
         if($payment_status)
             $q = $q->where('payment_status', $payment_status);
+        if($sale_type)
+            $q = $q->where('sale_type', $sale_type);
 
         $totalData = $q->count();
         $totalFiltered = $totalData;
@@ -178,12 +203,16 @@ class SaleController extends Controller
                 ->orderBy($order, $dir);
             if(Auth::user()->role_id > 2 && config('staff_access') == 'own')
                 $q = $q->where('user_id', Auth::id());
+            elseif(Auth::user()->role_id > 2 && config('staff_access') == 'warehouse')
+                $q = $q->where('warehouse_id', Auth::user()->warehouse_id);
             if($warehouse_id)
                 $q = $q->where('warehouse_id', $warehouse_id);
             if($sale_status)
                 $q = $q->where('sale_status', $sale_status);
             if($payment_status)
                 $q = $q->where('payment_status', $payment_status);
+            if($sale_type)
+                $q = $q->where('sale_type', $sale_type);
             $sales = $q->get();
         }
         else
@@ -224,6 +253,35 @@ class SaleController extends Controller
                 $sales = $q->get();
                 $totalFiltered = $q->count();
             }
+            elseif(Auth::user()->role_id > 2 && config('staff_access') == 'warehouse') {
+                $q = $q->select('sales.*')
+                        ->with('biller', 'customer', 'warehouse', 'user')
+                        ->where('sales.user_id', Auth::id())
+                        ->orwhere([
+                            ['sales.reference_no', 'LIKE', "%{$search}%"],
+                            ['sales.warehouse_id', Auth::user()->warehouse_id]
+                        ])
+                        ->orwhere([
+                            ['customers.name', 'LIKE', "%{$search}%"],
+                            ['sales.warehouse_id', Auth::user()->warehouse_id]
+                        ])
+                        ->orwhere([
+                            ['customers.phone_number', 'LIKE', "%{$search}%"],
+                            ['sales.warehouse_id', Auth::user()->warehouse_id]
+                        ])
+                        ->orwhere([
+                            ['billers.name', 'LIKE', "%{$search}%"],
+                            ['sales.warehouse_id', Auth::user()->warehouse_id]
+                        ]);
+                foreach ($field_names as $key => $field_name) {
+                    $q = $q->orwhere([
+                            ['sales.user_id', Auth::id()],
+                            ['sales.' . $field_name, 'LIKE', "%{$search}%"]
+                        ]);
+                }
+                $sales = $q->get();
+                $totalFiltered = $q->count();
+            }
             else {
                 $q = $q->select('sales.*')
                         ->with('biller', 'customer', 'warehouse', 'user')
@@ -245,7 +303,8 @@ class SaleController extends Controller
             {
                 $nestedData['id'] = $sale->id;
                 $nestedData['key'] = $key;
-                $nestedData['date'] = date(config('date_format'), strtotime($sale->created_at->toDateString()));
+                $nestedData['date'] = date(config('date_format').' h:i:s', strtotime($sale->created_at));
+                //$nestedData['date'] = $sale->created_at;
                 $nestedData['reference_no'] = $sale->reference_no;
                 $nestedData['biller'] = $sale->biller->name;
                 $nestedData['customer'] = $sale->customer->name.'<br>'.$sale->customer->phone_number.'<input type="hidden" class="deposit" value="'.($sale->customer->deposit - $sale->customer->expense).'" />'.'<input type="hidden" class="points" value="'.$sale->customer->points.'" />';
@@ -288,6 +347,7 @@ class SaleController extends Controller
                     $nestedData['delivery_status'] = 'N/A';
 
                 $nestedData['grand_total'] = number_format($sale->grand_total, config('decimal'));
+                //$nestedData['grand_total'] = \Illuminate\Support\Number::format($sale->grand_total, locale: 'id');
                 $returned_amount = DB::table('returns')->where('sale_id', $sale->id)->sum('grand_total');
                 $nestedData['returned_amount'] = number_format($returned_amount, config('decimal'));
                 $nestedData['paid_amount'] = number_format($sale->paid_amount, config('decimal'));
@@ -326,6 +386,16 @@ class SaleController extends Controller
                         '<li>
                             <button type="button" class="add-payment btn btn-link" data-id = "'.$sale->id.'" data-toggle="modal" data-target="#add-payment"><i class="fa fa-plus"></i> '.trans('file.Add Payment').'</button>
                         </li>';
+                if($sale->sale_status !== 4)
+                    $nestedData['options'] .=
+                    '<li>
+                        <a href="return-sale/create?reference_no='.$nestedData['reference_no'].'" class="add-payment btn btn-link"><i class="dripicons-return"></i> '.trans('file.Add Return').'</a>
+                    </li>';
+
+                $nestedData['options'] .=
+                '<li>
+                    <button type="button" class="send-sms btn btn-link" data-id = "'.$sale->id.'" data-customer_id="'.$sale->customer_id.'" data-reference_no="'.$nestedData['reference_no'].'" data-sale_status="'.$sale->sale_status.'" data-payment_status="'.$sale->payment_status.'"  data-toggle="modal" data-target="#send-sms"><i class="fa fa-envelope"></i> '.trans('file.Send SMS').'</button>
+                </li>';
 
                 $nestedData['options'] .=
                     '<li>
@@ -684,6 +754,9 @@ class SaleController extends Controller
                 $this->setMailInfo($mail_setting);
                 try {
                     Mail::to($mail_data['email'])->send(new SaleDetails($mail_data));
+                    /*$log_data['message'] = Auth::user()->name . ' has created a sale. Reference No: ' .$lims_sale_data->reference_no;
+                    $admin_email = 'ashfaqdev.php@gmail.com';
+                    Mail::to($admin_email)->send(new LogMessage($log_data));*/
                 }
                 catch(\Exception $e){
                     $message = ' Sale created successfully. Please setup your <a href="setting/mail_setting">mail setting</a> to send mail.';
@@ -724,6 +797,7 @@ class SaleController extends Controller
                 $lims_payment_data->change = $data['paying_amount'] - $data['paid_amount'];
                 $lims_payment_data->paying_method = $paying_method;
                 $lims_payment_data->payment_note = $data['payment_note'];
+                $lims_payment_data->payment_receiver = $data['payment_receiver'];
                 $lims_payment_data->save();
 
                 $lims_payment_data = Payment::latest()->first();
@@ -838,12 +912,46 @@ class SaleController extends Controller
             DB::rollBack();
             return response()->json(['error' => $e->getMessage()]);
         }*/
+
+        //sms send start
+        $smsData = [];
+  
+        $smsTemplate = SmsTemplate::where('is_default',1)->latest()->first();
+        $smsProvider = ExternalService::where('active',true)->where('type','sms')->first();
+        if($smsProvider && $smsTemplate && $lims_pos_setting_data['send_sms'] == 1) {
+            $smsData['type'] = 'onsite';
+            $smsData['template_id'] = $smsTemplate['id'];
+            $smsData['sale_status'] = $data['sale_status'];
+            $smsData['payment_status'] = $data['payment_status'];
+            $smsData['customer_id'] = $data['customer_id'];
+            $smsData['reference_no'] = $data['reference_no'];
+            $this->_smsModel->initialize($smsData);
+        }
+        //sms send end
+
         if($lims_sale_data->sale_status == '1')
             return redirect('sales/gen_invoice/' . $lims_sale_data->id)->with('message', $message);
         elseif($data['pos'])
             return redirect('pos')->with('message', $message);
         else
             return redirect('sales')->with('message', $message);
+    }
+
+    public function sendSMS(Request $request)
+    {
+        $data = $request->all();
+        //sms send start
+        $smsTemplate = SmsTemplate::where('is_default',1)->latest()->first();
+        $smsProvider = ExternalService::where('active',true)->where('type','sms')->first();
+        if($smsProvider && $smsTemplate)
+        {
+            $this->_smsModel->initialize($data);
+            return redirect()->back();
+        }
+        //sms send end
+        else {
+            return redirect()->back()->with('not_permitted', 'Please setup your SMS API first!');
+        }
     }
 
     public function sendMail(Request $request)
@@ -1521,6 +1629,8 @@ class SaleController extends Controller
         $product[] = $lims_product_data->is_imei;
         $product[] = $lims_product_data->is_variant;
         $product[] = $qty;
+        $product[] = $lims_product_data->wholesale_price;
+        $product[] = $lims_product_data->cost;
         return $product;
 
     }
@@ -1600,15 +1710,28 @@ class SaleController extends Controller
             else
                 $product_sale[7][$key] = 'N/A';
             $product_sale[0][$key] = $product->name . ' [' . $product->code . ']';
-            if($product_sale_data->imei_number)
+            $returned_imei_number_data ='';
+            if($product_sale_data->imei_number) {
                 $product_sale[0][$key] .= '<br>IMEI or Serial Number: '. $product_sale_data->imei_number;
+                $returned_imei_number_data = DB::table('returns')
+                                    ->join('product_returns', 'returns.id', '=', 'product_returns.return_id')
+                                    ->where([
+                                        ['returns.sale_id', $id],
+                                        ['product_returns.product_id', $product_sale_data->product_id]
+                                    ])->select('product_returns.imei_number')
+                                    ->first();
+            }
             $product_sale[1][$key] = $product_sale_data->qty;
             $product_sale[2][$key] = $unit;
             $product_sale[3][$key] = $product_sale_data->tax;
             $product_sale[4][$key] = $product_sale_data->tax_rate;
             $product_sale[5][$key] = $product_sale_data->discount;
             $product_sale[6][$key] = $product_sale_data->total;
-            $product_sale[8][$key] = $product_sale_data->return_qty;
+            if($returned_imei_number_data) {
+                $product_sale[8][$key] = $product_sale_data->return_qty.'<br>IMEI or Serial Number: '. $returned_imei_number_data->imei_number;
+            }
+            else
+                $product_sale[8][$key] = $product_sale_data->return_qty;
         }
         return $product_sale;
     }
@@ -2258,6 +2381,9 @@ class SaleController extends Controller
         if($lims_pos_setting_data->invoice_option == 'A4') {
             return view('backend.sale.a4_invoice', compact('lims_sale_data', 'currency_code', 'lims_product_sale_data', 'lims_biller_data', 'lims_warehouse_data', 'lims_customer_data', 'lims_payment_data', 'numberInWords', 'paid_by_info', 'sale_custom_fields', 'customer_custom_fields', 'product_custom_fields', 'qrText'));
         }
+        elseif($lims_sale_data->sale_type == 'online'){
+            return view('backend.sale.a4_invoice', compact('lims_sale_data', 'currency_code', 'lims_product_sale_data', 'lims_biller_data', 'lims_warehouse_data', 'lims_customer_data', 'lims_payment_data', 'numberInWords', 'paid_by_info', 'sale_custom_fields', 'customer_custom_fields', 'product_custom_fields', 'qrText'));
+        }
         else{
             return view('backend.sale.invoice', compact('lims_sale_data', 'currency_code', 'lims_product_sale_data', 'lims_biller_data', 'lims_warehouse_data', 'lims_customer_data', 'lims_payment_data', 'numberInWords', 'sale_custom_fields', 'customer_custom_fields', 'product_custom_fields', 'qrText'));
         }
@@ -2312,6 +2438,7 @@ class SaleController extends Controller
         $lims_payment_data->change = $data['paying_amount'] - $data['amount'];
         $lims_payment_data->paying_method = $paying_method;
         $lims_payment_data->payment_note = $data['payment_note'];
+        $lims_payment_data->payment_receiver = $data['payment_receiver'];
         $lims_payment_data->save();
         $lims_sale_data->save();
 
@@ -2326,40 +2453,42 @@ class SaleController extends Controller
         }
         elseif($paying_method == 'Credit Card'){
             $lims_pos_setting_data = PosSetting::latest()->first();
-            Stripe::setApiKey($lims_pos_setting_data->stripe_secret_key);
-            $token = $data['stripeToken'];
-            $amount = $data['amount'];
+            if($lims_pos_setting_data->stripe_secret_key) {
+                Stripe::setApiKey($lims_pos_setting_data->stripe_secret_key);
+                $token = $data['stripeToken'];
+                $amount = $data['amount'];
 
-            $lims_payment_with_credit_card_data = PaymentWithCreditCard::where('customer_id', $lims_sale_data->customer_id)->first();
+                $lims_payment_with_credit_card_data = PaymentWithCreditCard::where('customer_id', $lims_sale_data->customer_id)->first();
 
-            if(!$lims_payment_with_credit_card_data) {
-                // Create a Customer:
-                $customer = \Stripe\Customer::create([
-                    'source' => $token
-                ]);
+                if(!$lims_payment_with_credit_card_data) {
+                    // Create a Customer:
+                    $customer = \Stripe\Customer::create([
+                        'source' => $token
+                    ]);
 
-                // Charge the Customer instead of the card:
-                $charge = \Stripe\Charge::create([
-                    'amount' => $amount * 100,
-                    'currency' => 'usd',
-                    'customer' => $customer->id,
-                ]);
-                $data['customer_stripe_id'] = $customer->id;
+                    // Charge the Customer instead of the card:
+                    $charge = \Stripe\Charge::create([
+                        'amount' => $amount * 100,
+                        'currency' => 'usd',
+                        'customer' => $customer->id,
+                    ]);
+                    $data['customer_stripe_id'] = $customer->id;
+                }
+                else {
+                    $customer_id =
+                    $lims_payment_with_credit_card_data->customer_stripe_id;
+
+                    $charge = \Stripe\Charge::create([
+                        'amount' => $amount * 100,
+                        'currency' => 'usd',
+                        'customer' => $customer_id, // Previously stored, then retrieved
+                    ]);
+                    $data['customer_stripe_id'] = $customer_id;
+                }
+                $data['customer_id'] = $lims_sale_data->customer_id;
+                $data['charge_id'] = $charge->id;
+                PaymentWithCreditCard::create($data);
             }
-            else {
-                $customer_id =
-                $lims_payment_with_credit_card_data->customer_stripe_id;
-
-                $charge = \Stripe\Charge::create([
-                    'amount' => $amount * 100,
-                    'currency' => 'usd',
-                    'customer' => $customer_id, // Previously stored, then retrieved
-                ]);
-                $data['customer_stripe_id'] = $customer_id;
-            }
-            $data['customer_id'] = $lims_sale_data->customer_id;
-            $data['charge_id'] = $charge->id;
-            PaymentWithCreditCard::create($data);
         }
         elseif ($paying_method == 'Cheque') {
             PaymentWithCheque::create($data);
@@ -2436,6 +2565,7 @@ class SaleController extends Controller
         $cheque_no = [];
         $change = [];
         $paying_amount = [];
+        $payment_receiver = [];
         $account_name = [];
         $account_id = [];
 
@@ -2446,6 +2576,7 @@ class SaleController extends Controller
             $change[] = $payment->change;
             $paying_method[] = $payment->paying_method;
             $paying_amount[] = $payment->amount + $payment->change;
+            $payment_receiver[] = $payment->payment_receiver;
             if($payment->paying_method == 'Gift Card'){
                 $lims_payment_gift_card_data = PaymentWithGiftCard::where('payment_id',$payment->id)->first();
                 $gift_card_id[] = $lims_payment_gift_card_data->gift_card_id;
@@ -2475,6 +2606,7 @@ class SaleController extends Controller
         $payments[] = $paying_amount;
         $payments[] = $account_name;
         $payments[] = $account_id;
+        $payments[] = $payment_receiver;
 
         return $payments;
     }
@@ -2532,56 +2664,58 @@ class SaleController extends Controller
         }
         elseif ($data['edit_paid_by_id'] == 3){
             $lims_pos_setting_data = PosSetting::latest()->first();
-            Stripe::setApiKey($lims_pos_setting_data->stripe_secret_key);
-            if($lims_payment_data->paying_method == 'Credit Card'){
-                $lims_payment_with_credit_card_data = PaymentWithCreditCard::where('payment_id', $lims_payment_data->id)->first();
+            if($lims_pos_setting_data->stripe_secret_key) {
+                Stripe::setApiKey($lims_pos_setting_data->stripe_secret_key);
+                if($lims_payment_data->paying_method == 'Credit Card'){
+                    $lims_payment_with_credit_card_data = PaymentWithCreditCard::where('payment_id', $lims_payment_data->id)->first();
 
-                \Stripe\Refund::create(array(
-                  "charge" => $lims_payment_with_credit_card_data->charge_id,
-                ));
+                    \Stripe\Refund::create(array(
+                      "charge" => $lims_payment_with_credit_card_data->charge_id,
+                    ));
 
-                $customer_id =
-                $lims_payment_with_credit_card_data->customer_stripe_id;
-
-                $charge = \Stripe\Charge::create([
-                    'amount' => $data['edit_amount'] * 100,
-                    'currency' => 'usd',
-                    'customer' => $customer_id
-                ]);
-                $lims_payment_with_credit_card_data->charge_id = $charge->id;
-                $lims_payment_with_credit_card_data->save();
-            }
-            else{
-                $token = $data['stripeToken'];
-                $amount = $data['edit_amount'];
-                $lims_payment_with_credit_card_data = PaymentWithCreditCard::where('customer_id', $lims_sale_data->customer_id)->first();
-
-                if(!$lims_payment_with_credit_card_data) {
-                    $customer = \Stripe\Customer::create([
-                        'source' => $token
-                    ]);
-
-                    $charge = \Stripe\Charge::create([
-                        'amount' => $amount * 100,
-                        'currency' => 'usd',
-                        'customer' => $customer->id,
-                    ]);
-                    $data['customer_stripe_id'] = $customer->id;
-                }
-                else {
                     $customer_id =
                     $lims_payment_with_credit_card_data->customer_stripe_id;
 
                     $charge = \Stripe\Charge::create([
-                        'amount' => $amount * 100,
+                        'amount' => $data['edit_amount'] * 100,
                         'currency' => 'usd',
                         'customer' => $customer_id
                     ]);
-                    $data['customer_stripe_id'] = $customer_id;
+                    $lims_payment_with_credit_card_data->charge_id = $charge->id;
+                    $lims_payment_with_credit_card_data->save();
                 }
-                $data['customer_id'] = $lims_sale_data->customer_id;
-                $data['charge_id'] = $charge->id;
-                PaymentWithCreditCard::create($data);
+                else{
+                    $token = $data['stripeToken'];
+                    $amount = $data['edit_amount'];
+                    $lims_payment_with_credit_card_data = PaymentWithCreditCard::where('customer_id', $lims_sale_data->customer_id)->first();
+
+                    if(!$lims_payment_with_credit_card_data) {
+                        $customer = \Stripe\Customer::create([
+                            'source' => $token
+                        ]);
+
+                        $charge = \Stripe\Charge::create([
+                            'amount' => $amount * 100,
+                            'currency' => 'usd',
+                            'customer' => $customer->id,
+                        ]);
+                        $data['customer_stripe_id'] = $customer->id;
+                    }
+                    else {
+                        $customer_id =
+                        $lims_payment_with_credit_card_data->customer_stripe_id;
+
+                        $charge = \Stripe\Charge::create([
+                            'amount' => $amount * 100,
+                            'currency' => 'usd',
+                            'customer' => $customer_id
+                        ]);
+                        $data['customer_stripe_id'] = $customer_id;
+                    }
+                    $data['customer_id'] = $lims_sale_data->customer_id;
+                    $data['charge_id'] = $charge->id;
+                    PaymentWithCreditCard::create($data);
+                }
             }
             $lims_payment_data->paying_method = 'Credit Card';
         }
@@ -2643,6 +2777,8 @@ class SaleController extends Controller
         $lims_payment_data->amount = $data['edit_amount'];
         $lims_payment_data->change = $data['edit_paying_amount'] - $data['edit_amount'];
         $lims_payment_data->payment_note = $data['edit_payment_note'];
+        $lims_payment_data->payment_note = $data['edit_payment_note'];
+        $lims_payment_data->payment_receiver = $data['payment_receiver'];
         $lims_payment_data->save();
         $message = 'Payment updated successfully';
         //collecting male data
@@ -2687,14 +2823,16 @@ class SaleController extends Controller
             $lims_payment_gift_card_data->delete();
         }
         elseif($lims_payment_data->paying_method == 'Credit Card'){
-            $lims_payment_with_credit_card_data = PaymentWithCreditCard::where('payment_id', $request['id'])->first();
             $lims_pos_setting_data = PosSetting::latest()->first();
-            Stripe::setApiKey($lims_pos_setting_data->stripe_secret_key);
-            \Stripe\Refund::create(array(
-              "charge" => $lims_payment_with_credit_card_data->charge_id,
-            ));
+            if($lims_pos_setting_data->stripe_secret_key) {
+                $lims_payment_with_credit_card_data = PaymentWithCreditCard::where('payment_id', $request['id'])->first();
+                Stripe::setApiKey($lims_pos_setting_data->stripe_secret_key);
+                \Stripe\Refund::create(array(
+                  "charge" => $lims_payment_with_credit_card_data->charge_id,
+                ));
 
-            $lims_payment_with_credit_card_data->delete();
+                $lims_payment_with_credit_card_data->delete();
+            }
         }
         elseif ($lims_payment_data->paying_method == 'Cheque') {
             $lims_payment_cheque_data = PaymentWithCheque::where('payment_id', $request['id'])->first();

@@ -29,11 +29,13 @@ use App\Mail\ReturnDetails;
 use Mail;
 use Illuminate\Support\Facades\Validator;
 use App\Models\MailSetting;
+use App\Traits\MailInfo;
+use App\Traits\StaffAccess;
+use App\Traits\TenantInfo;
 
 class ReturnController extends Controller
 {
-    use \App\Traits\TenantInfo;
-    use \App\Traits\MailInfo;
+    use TenantInfo, MailInfo, StaffAccess;
 
     public function index(Request $request)
     {
@@ -80,6 +82,11 @@ class ReturnController extends Controller
                         ->whereDate('created_at', '>=' ,$request->input('starting_date'))
                         ->whereDate('created_at', '<=' ,$request->input('ending_date'))
                         ->count();
+        elseif(Auth::user()->role_id > 2 && config('staff_access') == 'warehouse')
+            $totalData = Returns::where('warehouse_id', Auth::user()->warehouse_id)
+                        ->whereDate('created_at', '>=' ,$request->input('starting_date'))
+                        ->whereDate('created_at', '<=' ,$request->input('ending_date'))
+                        ->count();
         elseif($warehouse_id != 0)
             $totalData = Returns::where('warehouse_id', $warehouse_id)
                         ->whereDate('created_at', '>=' ,$request->input('starting_date'))
@@ -107,6 +114,8 @@ class ReturnController extends Controller
                 ->orderBy($order, $dir);
             if(Auth::user()->role_id > 2 && config('staff_access') == 'own')
                 $q = $q->where('user_id', Auth::id());
+            elseif(Auth::user()->role_id > 2 && config('staff_access') == 'warehouse')
+                $q->where('warehouse_id', Auth::user()->warehouse_id);
             elseif($warehouse_id != 0)
                 $q = $q->where('warehouse_id', $warehouse_id);
             $returnss = $q->get();
@@ -160,6 +169,46 @@ class ReturnController extends Controller
                                 ])
                                 ->count();
             }
+            elseif(Auth::user()->role_id > 2 && config('staff_access') == 'warehouse') {
+                $returnss =  $q->select('returns.*')
+                            ->with('biller', 'customer', 'warehouse', 'user')
+                            ->where('returns.user_id', Auth::id())
+                            ->orwhere([
+                                ['returns.reference_no', 'LIKE', "%{$search}%"],
+                                ['returns.warehouse_id', Auth::user()->warehouse_id]
+                            ])
+                            ->orwhere([
+                                ['customers.name', 'LIKE', "%{$search}%"],
+                                ['returns.warehouse_id', Auth::user()->warehouse_id]
+                            ])
+                            ->orwhere([
+                                ['customers.phone_number', 'LIKE', "%{$search}%"],
+                                ['returns.warehouse_id', Auth::user()->warehouse_id]
+                            ])
+                            ->orwhere([
+                                ['billers.name', 'LIKE', "%{$search}%"],
+                                ['returns.warehouse_id', Auth::user()->warehouse_id]
+                            ])->get();
+
+                $totalFiltered = $q->where('returns.user_id', Auth::id())
+                                ->orwhere([
+                                    ['returns.reference_no', 'LIKE', "%{$search}%"],
+                                    ['returns.warehouse_id', Auth::user()->warehouse_id]
+                                ])
+                                ->orwhere([
+                                    ['customers.name', 'LIKE', "%{$search}%"],
+                                    ['returns.warehouse_id', Auth::user()->warehouse_id]
+                                ])
+                                ->orwhere([
+                                    ['customers.phone_number', 'LIKE', "%{$search}%"],
+                                    ['returns.warehouse_id', Auth::user()->warehouse_id]
+                                ])
+                                ->orwhere([
+                                    ['billers.name', 'LIKE', "%{$search}%"],
+                                    ['returns.warehouse_id', Auth::user()->warehouse_id]
+                                ])
+                                ->count();
+            }           
             else {
                 $returnss =  $q->select('returns.*')
                             ->with('biller', 'customer', 'warehouse', 'user')

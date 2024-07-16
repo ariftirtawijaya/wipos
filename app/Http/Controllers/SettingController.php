@@ -9,11 +9,14 @@ use App\Models\Warehouse;
 use App\Models\Biller;
 use App\Models\Account;
 use App\Models\Currency;
+use App\Models\ExternalService;
 use App\Models\PosSetting;
 use App\Models\MailSetting;
 use App\Models\GeneralSetting;
 use App\Models\HrmSetting;
 use App\Models\RewardPointSetting;
+use App\Models\SmsTemplate;
+use App\Services\SmsService;
 use DB;
 use ZipArchive;
 use Twilio\Rest\Client;
@@ -24,6 +27,12 @@ class SettingController extends Controller
 {
     use \App\Traits\CacheForget;
     use \App\Traits\TenantInfo;
+    private $_smsService;
+
+    public function __construct(SmsService $smsService)
+    {
+        $this->_smsService = $smsService;
+    }
 
     public function emptyDatabase()
     {
@@ -49,10 +58,14 @@ class SettingController extends Controller
         $this->cacheForget('role_has_permissions_list');
 
         $tables = DB::select('SHOW TABLES');
-        $str = 'Tables_in_' . env('DB_DATABASE');
+        if(!config('database.connections.saleprosaas_landlord'))
+            $database_name = env('DB_DATABASE');
+        else
+            $database_name = env('DB_PREFIX').$this->getTenantId();
+        $str = 'Tables_in_'.$database_name;
         foreach ($tables as $table) {
-            if($table->$str != 'accounts' && $table->$str != 'general_settings' && $table->$str != 'hrm_settings' && $table->$str != 'languages' && $table->$str != 'migrations' && $table->$str != 'password_resets' && $table->$str != 'permissions' && $table->$str != 'pos_setting' && $table->$str != 'roles' && $table->$str != 'role_has_permissions' && $table->$str != 'users' && $table->$str != 'currencies' && $table->$str != 'reward_point_settings') {
-                DB::table($table->$str)->truncate();
+            if($table->$str != 'accounts' && $table->$str != 'general_settings' && $table->$str != 'hrm_settings' && $table->$str != 'languages' && $table->$str != 'migrations' && $table->$str != 'password_resets' && $table->$str != 'permissions' && $table->$str != 'pos_setting' && $table->$str != 'roles' && $table->$str != 'role_has_permissions' && $table->$str != 'users' && $table->$str != 'currencies' && $table->$str != 'reward_point_settings' && $table->$str != 'ecommerce_settings' && $table->$str != 'external_services') {
+                DB::table($table->$str)->truncate();    
             }
         }
         return redirect()->back()->with('message', 'Database cleared successfully');
@@ -181,6 +194,12 @@ class SettingController extends Controller
         $general_setting->razorpay_number = $data['razorpay_number'];
         $general_setting->razorpay_key = $data['razorpay_key'];
         $general_setting->razorpay_secret = $data['razorpay_secret'];
+        $general_setting->paystack_public_key = $data['paystack_public_key'];
+        $general_setting->paystack_secret_key = $data['paystack_secret_key'];
+        $general_setting->paydunya_master_key = $data['paydunya_master_key'];
+        $general_setting->paydunya_public_key = $data['paydunya_public_key'];
+        $general_setting->paydunya_secret_key = $data['paydunya_secret_key'];
+        $general_setting->paydunya_token = $data['paydunya_token'];
         $og_image = $request->og_image;
         if ($logo) {
             $this->fileDelete('landlord/images/logo/', $general_setting->site_logo);
@@ -243,7 +262,11 @@ class SettingController extends Controller
             $data['is_active'] = true;
         else
             $data['is_active'] = false;
-        RewardPointSetting::latest()->first()->update($data);
+        $lims_reward_point_data = RewardPointSetting::latest()->first();
+        if($lims_reward_point_data)
+            $lims_reward_point_data->update($data);
+        else
+            RewardPointSetting::create($data);
         return redirect()->back()->with('message', 'Reward point setting updated successfully');
     }
 
@@ -382,7 +405,50 @@ class SettingController extends Controller
 
     public function smsSetting()
     {
-        return view('backend.setting.sms_setting');
+        $settings = ExternalService::all();
+        $tonkra = [];
+        $twilio = [];
+        $clickatell = [];
+
+        foreach($settings as $setting)
+        {
+           if($setting->name == 'tonkra'){
+                    $tonkra['sms_id'] = $setting->id ?? '';
+                    $tonkra['active'] = $setting->active ?? '';
+                    $tonkra['details'] = json_decode($setting->details) ?? '';
+                }
+
+                if($setting->name == 'twilio'){
+                    $twilio['sms_id'] = $setting->id ?? '';
+                    $twilio['active'] = $setting->active ?? '';
+                    $twilio['details'] = json_decode($setting->details) ?? '';
+                }
+
+                if($setting->name == 'clickatell'){
+                    $clickatell['sms_id'] = $setting->id ?? '';
+                    $clickatell['active'] = $setting->active ?? '';
+                    $clickatell['details'] = json_decode($setting->details) ?? '';
+                }
+
+        }
+      
+        $tonkra['sms_id'] = $tonkra['sms_id'] ?? '';
+        $tonkra['active'] = $tonkra['active'] ?? '';
+        $tonkra['api_token'] = $tonkra['details']->api_token  ?? '';
+        $tonkra['recipent'] = $tonkra['details']->recipent  ?? '';
+        $tonkra['sender_id'] = $tonkra['details']->sender_id  ?? '';
+
+        $twilio['sms_id'] = $twilio['sms_id'] ?? '';
+        $twilio['active'] = $twilio['active'] ?? '';
+        $twilio['account_sid'] = $twilio['details']->account_sid  ?? '';
+        $twilio['auth_token'] = $twilio['details']->auth_token  ?? '';
+        $twilio['twilio_number'] = $twilio['details']->twilio_number  ?? '';
+
+        $clickatell['sms_id'] = $clickatell['sms_id'] ?? '';
+        $clickatell['active'] = $clickatell['active'] ?? '';
+        $clickatell['api_key'] = $clickatell['details']->api_key ?? ''; 
+       
+        return view('backend.setting.sms_setting',compact('tonkra','twilio','clickatell'));
     }
 
     public function smsSettingStore(Request $request)
@@ -391,70 +457,110 @@ class SettingController extends Controller
             return redirect()->back()->with('not_permitted', 'This feature is disable for demo!');
 
         $data = $request->all();
-        //writting bulksms info in .env file
-        $path = app()->environmentFilePath();
+       
+        $data['active'] = $data['active'] ?? 0;
+        $tonkra = [];
+        $twilio = [];
+        $clickatell = [];
+
         if($data['gateway'] == 'twilio'){
-            $searchArray = array('SMS_GATEWAY='.env('SMS_GATEWAY'), 'ACCOUNT_SID='.env('ACCOUNT_SID'), 'AUTH_TOKEN='.env('AUTH_TOKEN'), 'Twilio_Number='.env('Twilio_Number') );
-
-            $replaceArray = array('SMS_GATEWAY='.$data['gateway'], 'ACCOUNT_SID='.$data['account_sid'], 'AUTH_TOKEN='.$data['auth_token'], 'Twilio_Number='.$data['twilio_number'] );
+            $twilio['account_sid'] = $data['account_sid'] ;
+            $twilio['auth_token'] = $data['auth_token'] ;
+            $twilio['twilio_number'] = $data['twilio_number'] ;
+            $data['details'] = json_encode($twilio);
         }
-        else{
-            $searchArray = array( 'SMS_GATEWAY='.env('SMS_GATEWAY'), 'CLICKATELL_API_KEY='.env('CLICKATELL_API_KEY') );
-            $replaceArray = array( 'SMS_GATEWAY='.$data['gateway'], 'CLICKATELL_API_KEY='.$data['api_key'] );
+        
+        if($data['gateway'] == 'tonkra'){
+            $tonkra['api_token'] = $data['api_token'];
+            $tonkra['sender_id'] = $data['sender_id'];
+            $data['details'] = json_encode($tonkra);
         }
 
-        file_put_contents($path, str_replace($searchArray, $replaceArray, file_get_contents($path)));
+        if($data['gateway'] == 'clickatell'){
+            $clickatell['api_key'] = $data['api_key'];
+            $data['details'] = json_encode($clickatell);
+        }
+        if (isset($data['active']) && $data['active'] == true) {
+            ExternalService::where('type','sms')
+                            ->where('active', true)
+                            ->update(['active' => false]);
+        }
+        ExternalService::updateOrCreate(
+            [
+                'name' => $data['gateway']
+            ],
+            [
+            'name' => $data['gateway'],
+            'type' => $data['type'],
+            'details' => $data['details'],
+            'active' => $data['active']
+            ]
+        );
+
         return redirect()->back()->with('message', 'Data updated successfully');
     }
 
     public function createSms()
     {
         $lims_customer_list = Customer::where('is_active', true)->get();
-        return view('backend.setting.create_sms', compact('lims_customer_list'));
+        $smsTemplates = SmsTemplate::all();
+        // dd($smsTemplates);
+        return view('backend.setting.create_sms', compact('lims_customer_list','smsTemplates'));
     }
 
     public function sendSms(Request $request)
     {
         $data = $request->all();
-        $numbers = explode(",", $data['mobile']);
 
-        if( env('SMS_GATEWAY') == 'twilio') {
-            $account_sid = env('ACCOUNT_SID');
-            $auth_token = env('AUTH_TOKEN');
-            $twilio_phone_number = env('Twilio_Number');
-            try{
-                $client = new Client($account_sid, $auth_token);
-                foreach ($numbers as $number) {
-                    $client->messages->create(
-                        $number,
-                        array(
-                            "from" => $twilio_phone_number,
-                            "body" => $data['message']
-                        )
-                    );
-                }
-            }
-            catch(\Exception $e){
-                //return $e;
-                return redirect()->back()->with('not_permitted', 'Please setup your <a href="sms_setting">SMS Setting</a> to send SMS.');
-            }
-            $message = "SMS sent successfully";
+        $smsProvider = ExternalService::where('active',true)->where('type','sms')->first();
+
+        $smsData['sms_provider_name'] = $smsProvider->name;
+        $smsData['details'] = $smsProvider->details;
+        $smsData['message'] = $data['message'];
+        $smsData['recipent'] = $data['mobile'];
+        $numbers = explode(",", $data['mobile']);
+        $smsData['numbers'] = $numbers;
+
+        $this->_smsService->initialize($smsData);
+
+        return redirect()->back()->with('message','SMS sent successfully');
+
+    }
+
+    public function processSmsData($templateId, $customerId, $referenceNo)
+    {
+        $smsData = [];
+
+        $smsTemplate = SmsTemplate::find($templateId);
+        $template = $smsTemplate['content'];
+
+        $customer = Customer::find($customerId);
+        $customerName = $customer['name'];
+
+        $smsData['message'] = $this->replacePlaceholders($template, $customerName, $referenceNo);
+
+        $smsProvider = ExternalService::where('active',true)->where('type','sms')->first();
+        $smsData['sms_provider_name'] = $smsProvider->name;
+        $smsData['details'] = $smsProvider->details;
+       
+        return $smsData;
+    }
+
+    public function replacePlaceholders($template, $customerName, $referenceNo) {
+        // Check for the presence of the [customer] placeholder in the template
+        if (strpos($template, '[customer]') !== false) {
+            // Replace [customer] with the value of $customerName
+            $template = str_replace('[customer]', $customerName, $template);
         }
-        elseif( env('SMS_GATEWAY') == 'clickatell') {
-            try {
-                $clickatell = new \Clickatell\Rest(env('CLICKATELL_API_KEY'));
-                foreach ($numbers as $number) {
-                    $result = $clickatell->sendMessage(['to' => [$number], 'content' => $data['message']]);
-                }
-            }
-            catch (ClickatellException $e) {
-                return redirect()->back()->with('not_permitted', 'Please setup your <a href="sms_setting">SMS Setting</a> to send SMS.');
-            }
-            $message = "SMS sent successfully";
+    
+        // Check for the presence of the [reference] placeholder in the template
+        if (strpos($template, '[reference]') !== false) {
+            // Replace [reference] with the value of $referenceNo
+            $template = str_replace('[reference]', $referenceNo, $template);
         }
-        else
-            return redirect()->back()->with('not_permitted', 'Please setup your <a href="sms_setting">SMS Setting</a> to send SMS.');
-        return redirect()->back()->with('message', $message);
+    
+        // Return the modified template with the placeholders replaced (if found)
+        return $template;
     }
 
     public function hrmSetting()
@@ -494,7 +600,7 @@ class SettingController extends Controller
             return redirect()->back()->with('not_permitted', 'This feature is disable for demo!');
 
         $data = $request->all();
-
+        
         if(isset($data['options'])){
             $options = implode(',',$data['options']);
         } else {
@@ -522,6 +628,10 @@ class SettingController extends Controller
             $pos_setting->is_table = false;
         else
             $pos_setting->is_table = true;
+        if(!isset($data['send_sms']))
+            $pos_setting->send_sms = false;
+        else
+            $pos_setting->send_sms = true;
         $pos_setting->save();
         cache()->forget('pos_setting');
         return redirect()->back()->with('message', 'POS setting updated successfully');

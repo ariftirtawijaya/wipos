@@ -166,6 +166,7 @@
                                         <select name="staff_access" class="selectpicker form-control">
                                             <option value="all"> {{trans('file.All Records')}}</option>
                                             <option value="own"> {{trans('file.Own Records')}}</option>
+                                            <option value="warehouse"> {{trans('file.Warehouse Wise')}}</option>
                                         </select>
                                     </div>
                                 </div>

@@ -135,12 +135,12 @@
     var lims_product_code = [
     @foreach($lims_product_list_without_variant as $product)
         <?php
-            $productArray[] = htmlspecialchars($product->code . ' (' . $product->name . ')');
+            $productArray[] = htmlspecialchars($product->code . ' (' . preg_replace('/[\n\r]/', "<br>", htmlspecialchars($product->name)) . ')');
         ?>
     @endforeach
     @foreach($lims_product_list_with_variant as $product)
         <?php
-            $productArray[] = htmlspecialchars($product->item_code . ' (' . $product->name . ')');
+            $productArray[] = htmlspecialchars($product->item_code . ' (' . preg_replace('/[\n\r]/', "<br>", htmlspecialchars($product->name)) . ')');
         ?>
     @endforeach
     <?php

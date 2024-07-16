@@ -27,7 +27,7 @@
       @endphp
       <div class="row">
         <div class="container-fluid">
-          @if(\Auth::user()->role_id <= 2 && isset($_COOKIE['login_now']) && $_COOKIE['login_now'])
+          @if( !config('database.connections.saleprosaas_landlord') && \Auth::user()->role_id <= 2 && isset($_COOKIE['login_now']) && $_COOKIE['login_now'] )
             <div id="update-alert-section" class="{{ $alertVersionUpgradeEnable===true ? null : 'd-none' }} alert alert-primary alert-dismissible fade show" role="alert">
                 <p id="announce" class="{{ $alertVersionUpgradeEnable===true ? null : 'd-none' }}"><strong>Hurray !!!</strong> A new version {{config('auto_update.VERSION')}} <span id="newVersionNo"></span> has been released. Please <i><b><a href="{{route('new-release')}}">Click here</a></b></i> to check upgrade details.</p>
                 <button type="button" id="closeButtonUpgrade" class="close" data-dismiss="alert" aria-label="Close">
@@ -337,7 +337,7 @@
             var url = '{{url("/public/images/product")}}';
             data.forEach(function(item){
               if(item.product_images)
-                var images = item.product_images.split('|');
+                var images = item.product_images.split(',');
               else
                 var images = ['zummXD2dvAtI.png'];
               $('#yearly-best-selling-price').find('tbody').append('<tr><td><img src="'+url+'/'+images[0]+'" height="25" width="30"> '+item.product_name+' ['+item.product_code+']</td><td>'+item.total_price+'</td></tr>');
@@ -355,7 +355,7 @@
             var url = '{{url("/public/images/product")}}';
             data.forEach(function(item){
               if(item.product_images)
-                var images = item.product_images.split('|');
+                var images = item.product_images.split(',');
               else
                 var images = ['zummXD2dvAtI.png'];
               $('#yearly-best-selling-qty').find('tbody').append('<tr><td><img src="'+url+'/'+images[0]+'" height="25" width="30"> '+item.product_name+' ['+item.product_code+']</td><td>'+item.sold_qty+'</td></tr>');
@@ -373,7 +373,7 @@
             var url = '{{url("/public/images/product")}}';
             data.forEach(function(item){
               if(item.product_images)
-                var images = item.product_images.split('|');
+                var images = item.product_images.split(',');
               else
                 var images = ['zummXD2dvAtI.png'];
               $('#monthly-best-selling-qty').find('tbody').append('<tr><td><img src="'+url+'/'+images[0]+'" height="25" width="30"> '+item.product_name+' ['+item.product_code+']</td><td>'+item.sold_qty+'</td></tr>');
@@ -397,7 +397,7 @@
               } else {
                 var status = '<div class="badge badge-warning">{{trans("file.Draft")}}</div>';
               }
-              $('#recent-sale').find('tbody').append('<tr><td>'+sale_date+'</td><td>'+item.reference_no+'</td><td>'+item.name+'</td><td>'+status+'</td><td>'+item.grand_total+'</td></tr>');
+              $('#recent-sale').find('tbody').append('<tr><td>'+sale_date+'</td><td>'+item.reference_no+'</td><td>'+item.name+'</td><td>'+status+'</td><td>'+item.grand_total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")+'</td></tr>');
             })
         }
       });
@@ -411,14 +411,19 @@
         success: function(data) {
             data.forEach(function(item){
               var payment_date = dateFormat(item.created_at.split('T')[0], '{{$general_setting->date_format}}')
-              if(item.payment_status == 1){
-                var status = '<div class="badge badge-success">{{trans("file.Completed")}}</div>';
-              } else if(item.payment_status == 2) {
-                var status = '<div class="badge badge-danger">{{trans("file.Pending")}}</div>';
-              } else {
-                var status = '<div class="badge badge-warning">{{trans("file.Draft")}}</div>';
+              if(item.status == 1){
+                var status = '<div class="badge badge-success">{{trans("file.Recieved")}}</div>';
               }
-              $('#recent-purchase').find('tbody').append('<tr><td>'+payment_date+'</td><td>'+item.reference_no+'</td><td>'+item.name+'</td><td>'+status+'</td><td>'+item.grand_total+'</td></tr>');
+              else if(item.status == 2) {
+                var status = '<div class="badge badge-danger">{{trans("file.Partial")}}</div>';
+              }
+              else if(item.status == 3) {
+                var status = '<div class="badge badge-danger">{{trans("file.Pending")}}</div>';
+              }
+              else {
+                var status = '<div class="badge badge-warning">{{trans("file.Ordered")}}</div>';
+              }
+              $('#recent-purchase').find('tbody').append('<tr><td>'+payment_date+'</td><td>'+item.reference_no+'</td><td>'+item.name+'</td><td>'+status+'</td><td>'+item.grand_total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")+'</td></tr>');
             })
         }
       });
@@ -433,13 +438,12 @@
             data.forEach(function(item){
               var quotation_date = dateFormat(item.created_at.split('T')[0], '{{$general_setting->date_format}}')
               if(item.quotation_status == 1){
-                var status = '<div class="badge badge-success">{{trans("file.Completed")}}</div>';
-              } else if(item.quotation_status == 2) {
-                var status = '<div class="badge badge-danger">{{trans("file.Pending")}}</div>';
-              } else {
-                var status = '<div class="badge badge-warning">{{trans("file.Draft")}}</div>';
+                var status = '<div class="badge badge-success">{{trans("file.Pending")}}</div>';
               }
-              $('#recent-quotation').find('tbody').append('<tr><td>'+quotation_date+'</td><td>'+item.reference_no+'</td><td>'+item.name+'</td><td>'+status+'</td><td>'+item.grand_total+'</td></tr>');
+              else if(item.quotation_status == 2) {
+                var status = '<div class="badge badge-danger">{{trans("file.Sent")}}</div>';
+              }
+              $('#recent-quotation').find('tbody').append('<tr><td>'+quotation_date+'</td><td>'+item.reference_no+'</td><td>'+item.name+'</td><td>'+status+'</td><td>'+item.grand_total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")+'</td></tr>');
             })
         }
       });
@@ -453,7 +457,7 @@
         success: function(data) {
             data.forEach(function(item){
               var payment_date = dateFormat(item.created_at.split('T')[0], '{{$general_setting->date_format}}')
-              $('#recent-payment').find('tbody').append('<tr><td>'+payment_date+'</td><td>'+item.payment_reference+'</td><td>'+item.amount+'</td><td>'+item.paying_method+'</td></tr>');
+              $('#recent-payment').find('tbody').append('<tr><td>'+payment_date+'</td><td>'+item.payment_reference+'</td><td>'+item.amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")+'</td><td>'+item.paying_method+'</td></tr>');
             })
         }
       });

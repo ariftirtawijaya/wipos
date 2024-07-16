@@ -18,6 +18,15 @@
                         {!! Form::open(['route' => 'setting.sendSms', 'method' => 'post']) !!}
                             <div class="row">
                                 <div class="col-md-6">
+                                    <div class="form-group mt-1">
+                                        <label>{{trans('file.SMS Template')}}</label>
+                                        <select name="template_id" class="form-control selectpicker sms_template">                            
+                                            <option value="">Select Template</option>
+                                            @foreach($smsTemplates as $template)
+                                            <option value="{{ $template->id }}" data-msg="{{ $template->content}}" >{{ $template->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
                                     <div class="form-group">
                                         <input type="text" class="form-control" name="lims_customerSearch" id="lims_customerSearch" placeholder="Please type customer name or mobile no and select..." />
                                     </div>
@@ -27,7 +36,7 @@
                                     </div>
                                     <div class="form-group twilio">
                                         <label>{{trans('file.Message')}} *</label>
-                                        <textarea name="message" class="form-control" rows="3" required></textarea>
+                                        <textarea name="message" class="form-control message" rows="3" required></textarea>
                                     </div>
                                     <div class="form-group">
                                         <button type="submit" class="btn btn-primary"><i class="fa fa-paper-plane"></i> {{trans('file.Send SMS')}}</button>
@@ -94,6 +103,11 @@
         }
         $('#lims_customerSearch').val('');
     }
-
+    $(".sms_template").change(function(){
+     
+        var id = $(this).val();
+        var msg = $(this).find(':selected').data('msg');
+        $('.message').val(msg);
+    });
 </script>
 @endpush

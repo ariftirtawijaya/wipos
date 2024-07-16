@@ -7,6 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 class Language extends Model
 {
     protected $fillable =[
-        "code"
+        "code", "name", "is_default"
     ];
 }

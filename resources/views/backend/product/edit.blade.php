@@ -1,10 +1,24 @@
 @extends('backend.layout.main')
 
+@if(in_array('ecommerce',explode(',',$general_setting->modules)))
+@push('css')
+<style>
+.search_result {border:1px solid #e4e6fc;border-radius:5px;overflow-y: scroll;}
+.search_result > div, .selected_items > div {border-top:1px solid #e4e6fc;cursor:pointer;display:flex;align-items:center;padding: 10px;position: relative;}
+.search_result > div > img, .selected_items > div > img {margin-right: 10px;max-width: 40px;}
+.search_result > div h4, .selected_items > div h4 {font-size: 0.9rem;}
+.search_result > div i {color:#54b948;position:absolute;right:5px;top:30%}
+.search_result div:first-child {border-top:none}
+.selected_items .remove_item {position: absolute;right: 20px;top:20px};
+</style>
+@endpush
+@endif
+
 @section('content')
 <section class="forms">
     <div class="container-fluid">
         <div class="row">
-            <div class="col-md-12">
+            <div class="col-md-12"> 
                 <div class="card">
                     <div class="card-header d-flex align-items-center">
                         <h4>{{trans('file.Update Product')}}</h4>
@@ -197,6 +211,12 @@
                                     </div>
                                     <div class="form-group">
                                         <input type="hidden" name="qty" value="{{ $lims_product_data->qty }}" class="form-control">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label>{{trans('file.Wholesale Price')}}</strong> </label>
+                                        <input type="number" name="wholesale_price" class="form-control" value="{{$lims_product_data->wholesale_price}}" step="any">
                                     </div>
                                 </div>
                                 <div class="col-md-4">
@@ -500,6 +520,14 @@
                                 </div>
                                 @endif
                                 @if(in_array('ecommerce',explode(',',$general_setting->modules)))
+                                <div class="col-md-12 mt-3">
+                                    <h5><input name="is_online" type="checkbox" id="is_online" value="1" {{$lims_product_data->is_online==1 ? 'checked':''}}>&nbsp; {{trans('file.Sell Online')}}</h5>
+                                </div>
+                                <div class="col-md-12 mt-3">
+                                    <h5><input name="in_stock" type="checkbox" id="in_stock" value="1" {{$lims_product_data->in_stock==1 ? 'checked':''}}>&nbsp; {{trans('file.In Stock')}}</h5>
+                                </div>
+                                @endif
+                                @if(in_array('ecommerce',explode(',',$general_setting->modules)))
                                 <div class="col-12 mt-3">
                                     <div class="form-group">
                                         <label>{{trans('file.Product Tags')}}</strong> </label>
@@ -520,6 +548,23 @@
                                     <label>{{ __('Meta Description') }}</label>
                                     <input type="text" name="meta_description" class="form-control" value="{{$lims_product_data->meta_description}}">
                                 </div>
+                                <div class="col-md-12 form-group">
+                                    <label>{{trans('file.Related Products')}}</label>
+                                    <input type="text" id="search_products" class="form-control">
+                                    <div class="search_result"></div>
+                                    <h4 class="mt-5 mb-3">{{trans('file.Selected Items')}}</h4>
+                                    @if(isset($related_products))
+                                        <div class="selected_items">
+                                            @foreach($related_products as $product)
+                                            @php
+                                                $image = explode(',', $product->image); 
+                                            @endphp
+                                            <div data-id="{{$product->id}}"><img src="{{asset('public/images/product/small/')}}/{{$image[0]}}"><h4>{{$product->name}}</h4><span class="remove_item"><i class="dripicons-cross"></i></span></div>
+                                            @endforeach
+                                        </div>
+                                        <textarea class="selected_ids hidden no-tiny" name="products">{{$related_products}},</textarea>
+                                    @endif
+                                </div>
                                 @endif
                                 <div class="col-md-12 mt-3">
                                     <div class="form-group">
@@ -539,6 +584,53 @@
 
 @push('scripts')
 <script type="text/javascript">
+
+    $.ajaxSetup({
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        }
+    });
+
+    @if(in_array('ecommerce',explode(',',$general_setting->modules)))
+    $('#search_products').on('input', function() {
+        var item = $(this).val();
+        $('.search_result').html('<div class="d-block text-center"><div class="spinner-border text-secondary" role="status"><span class="sr-only">Loading...</span></div></div>');
+
+        if(item.length >= 3){
+            $.ajax({
+                type: "get",
+                url: "{{url('search')}}/" + item,
+                success: function(data) {
+                    $('.search_result').html('').css('height','200px');
+                    $.each(data,function(key, value){ 
+                        var image = value.image.split(',');
+                        $('.search_result').append('<div data-id="'+value.id+'"><img src="{{asset("public/images/product/small/")}}/'+image[0]+'"><h4>'+value.name+'</h4><i class="dripicons-checkmark d-none"></i></div>')
+                    })
+                }
+            })  
+        } else if (item.length < 3) {
+            $('.search_result').html('');
+        }
+    });
+
+    $(document).on('click','.search_result div',function(){
+        $(this).find('i').removeClass('d-none');
+        var selected_item = '<div data-id="'+$(this).data('id')+'">'+$(this).html()+'<span class="remove_item"><i class="dripicons-cross"></i></span></div>';
+        if ($('.selected_ids').html().indexOf($(this).data('id')) === -1){
+            $('.selected_items').prepend(selected_item);
+            $('.selected_ids').append($(this).data('id')+','); 
+            $('.selected_items .dripicons-checkmark').addClass('d-none');
+        }       
+    });
+
+    $(document).on('click','.remove_item',function(){
+        var item = $(this).parent().remove();
+        var remove_id = $(this).parent().data('id');
+        var selected_ids = $('.selected_ids').html().replace(remove_id+',','');
+        $('.selected_ids').html(selected_ids);
+        
+    });
+    @endif
 
     $("ul#product").siblings('a').attr('aria-expanded','true');
     $("ul#product").addClass("show");
@@ -605,12 +697,6 @@
         $("#start_date").hide(300);
         $("#last_date").hide(300);
     }
-
-    $.ajaxSetup({
-        headers: {
-            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-        }
-    });
 
     $('#genbutton').on("click", function(){
       $.get('../gencode', function(data){
@@ -1074,7 +1160,7 @@
     //end of variant related js
 
     tinymce.init({
-      selector: 'textarea',
+      selector: 'textarea:not(.no-tiny)',
       height: 130,
       plugins: [
         'advlist autolink lists link image charmap print preview anchor textcolor',
@@ -1167,12 +1253,12 @@
     var lims_product_code = [
         @foreach($lims_product_list_without_variant as $product)
         <?php
-            $productArray[] = htmlspecialchars($product->code . ' (' . $product->name . ')');
+            $productArray[] = htmlspecialchars($product->code) . '|' . preg_replace('/[\n\r]/', "<br>", htmlspecialchars($product->name));
         ?>
         @endforeach
         @foreach($lims_product_list_with_variant as $product)
             <?php
-                $productArray[] = htmlspecialchars($product->item_code . ' (' . $product->name . ')');
+                $productArray[] = htmlspecialchars($product->item_code) . '|' . preg_replace('/[\n\r]/', "<br>", htmlspecialchars($product->name));
             ?>
         @endforeach
             <?php
@@ -1396,10 +1482,10 @@
                 alert('Product code length must be less than 8');
                 return false;
             }
-            else if(barcode_symbology == 'EAN13' && product_code.length > 12){
+            /*else if(barcode_symbology == 'EAN13' && product_code.length > 12){
                 alert('Product code length must be less than 13');
                 return false;
-            }
+            }*/
         }
 
         if( $("#type").val() == 'combo' ) {
@@ -1458,9 +1544,9 @@
             var myDropzone = this;
             $('#submit-btn').on("click", function (e) {
                 e.preventDefault();
-                $(this).attr('disabled','true').html('<span class="spinner-border text-light" role="status"></span> {{trans("file.Saving")}}...');
                 if ( $("#product-form").valid() && validate() ) {
                     tinyMCE.triggerSave();
+                    $(this).attr('disabled','true').html('<span class="spinner-border text-light" role="status"></span> {{trans("file.Saving")}}...');
                     if(myDropzone.getAcceptedFiles().length) {
                         myDropzone.processQueue();
                     }

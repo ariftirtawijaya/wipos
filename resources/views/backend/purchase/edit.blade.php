@@ -214,7 +214,7 @@
                                                     ?>
                                                         <td>{{$product_data->name}} <button type="button" class="edit-product btn btn-link" data-toggle="modal" data-target="#editModal"> <i class="dripicons-document-edit"></i></button> </td>
                                                         <td>{{$product_data->code}}</td>
-                                                        <td><input type="number" class="form-control qty" name="qty[]" value="{{$product_purchase->qty}}" step="any" required /></td>
+                                                        <td><input type="text" class="form-control qty" name="qty[]" value="{{$product_purchase->qty}}" required /></td>
                                                         <td class="recieved-product-qty d-none"><input type="number" class="form-control recieved" name="recieved[]" value="{{$product_purchase->recieved}}" step="any"/></td>
                                                         @if($product_purchase->product_batch_id)
                                                         <td>
@@ -540,17 +540,17 @@ $('select[name="status"]').on('change', function() {
 var lims_product_code = [
     @foreach($lims_product_list_without_variant as $product)
         <?php
-            $productArray[] = htmlspecialchars($product->code . '|' . $product->name);
+            $productArray[] = htmlspecialchars($product->code) . '|' . preg_replace('/[\n\r]/', "<br>", htmlspecialchars($product->name));
         ?>
     @endforeach
     @foreach($lims_product_list_with_variant as $product)
         <?php
-            $productArray[] = htmlspecialchars($product->item_code . '|' . $product->name);
+            $productArray[] = htmlspecialchars($product->item_code) . '|' . preg_replace('/[\n\r]/', "<br>", htmlspecialchars($product->name));
         ?>
     @endforeach
-        <?php
-            echo  '"'.implode('","', $productArray).'"';
-        ?>
+    <?php
+        echo  '"'.implode('","', $productArray).'"';
+    ?>
 ];
 
     var lims_productcodeSearch = $('#lims_productcodeSearch');
@@ -733,13 +733,13 @@ function productSearch(data) {
                 temp_unit_name = (data[6]).split(',');
                 cols += '<td>' + data[0] + '<button type="button" class="edit-product btn btn-link" data-toggle="modal" data-target="#editModal"> <i class="dripicons-document-edit"></i></button></td>';
                 cols += '<td>' + data[1] + '</td>';
-                cols += '<td><input type="number" class="form-control qty" name="qty[]" value="1" step="any" required /></td>';
+                cols += '<td><input type="text" class="form-control qty" name="qty[]" value="1" required /></td>';
                 if($('select[name="status"]').val() == 1)
-                    cols += '<td class="recieved-product-qty d-none"><input type="number" class="form-control recieved" name="recieved[]" value="1" step="any" /></td>';
+                    cols += '<td class="recieved-product-qty d-none"><input type="text" class="form-control recieved" name="recieved[]" value="1"  /></td>';
                 else if($('select[name="status"]').val() == 2)
-                    cols += '<td class="recieved-product-qty"><input type="number" class="form-control recieved" name="recieved[]" value="1" step="any"/></td>';
+                    cols += '<td class="recieved-product-qty"><input type="text" class="form-control recieved" name="recieved[]" value="1" /></td>';
                 else
-                    cols += '<td class="recieved-product-qty d-none"><input type="number" class="form-control recieved" name="recieved[]" value="0" step="any"/></td>';
+                    cols += '<td class="recieved-product-qty d-none"><input type="text" class="form-control recieved" name="recieved[]" value="0" /></td>';
                 if(data[10]) {
                     cols += '<td><input type="text" class="form-control batch-no" name="batch_no[]" required/></td>';
                     cols += '<td><input type="text" class="form-control expired-date" name="expired_date[]" required/></td>';

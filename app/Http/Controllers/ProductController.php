@@ -39,20 +39,6 @@ class ProductController extends Controller
 
     public function index()
     {
-        // $path = public_path('images/product/');
-
-        // $files = File::allFiles($path);
-
-        // foreach ($files as $key => $image) {
-        //     $imageName = $image->getFilename();
-            
-        //     $img_lg = Image::make('public/images/product/'. $imageName)->fit(500, 500)->save('public/images/product/large/'. $imageName, 100);
-        //     $img_md = Image::make('public/images/product/'. $imageName)->fit(250, 250)->save('public/images/product/medium/'. $imageName, 100);
-        //     $img_sm = Image::make('public/images/product/'. $imageName)->fit(100, 100)->save('public/images/product/small/'. $imageName, 100);
-
-        // }
-
-
         $role = Role::find(Auth::user()->role_id);
         if($role->hasPermissionTo('products-index')){
             $permissions = Role::findByName($role->name)->permissions;
@@ -302,7 +288,7 @@ class ProductController extends Controller
             $numberOfProduct = Product::where('is_active', true)->count();
             $custom_fields = CustomField::where('belongs_to', 'product')->get();
             return view('backend.product.create',compact('lims_product_list_without_variant', 'lims_product_list_with_variant', 'lims_brand_list', 'lims_category_list', 'lims_unit_list', 'lims_tax_list', 'lims_warehouse_list', 'numberOfProduct', 'custom_fields'));
-        }
+        } 
         else
             return redirect()->back()->with('not_permitted', 'Sorry! You are not allowed to access this module');
     }
@@ -332,10 +318,15 @@ class ProductController extends Controller
         else {
             $data['variant_option'] = $data['variant_value'] = null;
         }
-        $data['name'] = preg_replace('/[\n\r]/', "<br>", htmlspecialchars(trim($data['name'])));
-        $data['slug'] = Str::slug($data['name'], '-');
-        $data['slug'] = preg_replace('/[^A-Za-z0-9\-]/', '', $data['slug']);
-        $data['slug'] = str_replace( '\/', '/', $data['slug'] );
+
+        $data['name'] = preg_replace('/[\n\r]/', "<br>", htmlspecialchars(trim($data['name']), ENT_QUOTES));
+
+        if(in_array('ecommerce', explode(',',config('addons')))) {
+            $data['slug'] = Str::slug($data['name'], '-');
+            $data['slug'] = preg_replace('/[^A-Za-z0-9\-]/', '', $data['slug']);
+            $data['slug'] = str_replace( '\/', '/', $data['slug'] );
+        }
+            
         if($data['type'] == 'combo') {
             $data['product_list'] = implode(",", $data['product_id']);
             $data['variant_list'] = implode(",", $data['variant_id']);
@@ -1014,6 +1005,12 @@ class ProductController extends Controller
             $lims_warehouse_list = Warehouse::where('is_active', true)->get();
             $noOfVariantValue = 0;
             $custom_fields = CustomField::where('belongs_to', 'product')->get();
+            
+            if(in_array('ecommerce', explode(',',config('addons')))) {
+                $product_arr = explode(',',$lims_product_data->related_products);
+                $related_products = DB::table('products')->whereIn('id',$product_arr)->get(); 
+                return view('backend.product.edit',compact('related_products','lims_product_list_without_variant', 'lims_product_list_with_variant', 'lims_brand_list', 'lims_category_list', 'lims_unit_list', 'lims_tax_list', 'lims_product_data', 'lims_product_variant_data', 'lims_warehouse_list', 'noOfVariantValue', 'custom_fields'));
+            }
             return view('backend.product.edit',compact('lims_product_list_without_variant', 'lims_product_list_with_variant', 'lims_brand_list', 'lims_category_list', 'lims_unit_list', 'lims_tax_list', 'lims_product_data', 'lims_product_variant_data', 'lims_warehouse_list', 'noOfVariantValue', 'custom_fields'));
         }
         else
@@ -1044,10 +1041,26 @@ class ProductController extends Controller
 
             $lims_product_data = Product::findOrFail($request->input('id'));
             $data = $request->except('image', 'file', 'prev_img');
-            $data['name'] = htmlspecialchars(trim($data['name']));
-            $data['slug'] = Str::slug($data['name'], '-');
-            $data['slug'] = preg_replace('/[^A-Za-z0-9\-]/', '', $data['slug']);
-            $data['slug'] = str_replace( '\/', '/', $data['slug'] );
+            $data['name'] = htmlspecialchars(trim($data['name']), ENT_QUOTES);
+
+
+            if(in_array('ecommerce', explode(',',config('addons')))) {
+                $data['slug'] = Str::slug($data['name'], '-');
+                $data['slug'] = preg_replace('/[^A-Za-z0-9\-]/', '', $data['slug']);
+                $data['slug'] = str_replace( '\/', '/', $data['slug'] );
+                $data['related_products'] = rtrim($request->products, ",");
+
+                if(isset($request->in_stock))
+                    $data['in_stock'] = $request->input('in_stock');
+                else
+                    $data['in_stock'] = 0;
+
+                if(isset($request->is_online))
+                    $data['is_online'] = $request->input('is_online');
+                else
+                    $data['is_online'] = 0;
+            }
+
             if($data['type'] == 'combo') {
                 $data['product_list'] = implode(",", $data['product_id']);
                 $data['variant_list'] = implode(",", $data['variant_id']);
@@ -1213,11 +1226,13 @@ class ProductController extends Controller
             }
             else {
                 $data['is_diffPrice'] = false;
-                foreach ($data['warehouse_id'] as $key => $warehouse_id) {
-                    $lims_product_warehouse_data = Product_Warehouse::FindProductWithoutVariant($lims_product_data->id, $warehouse_id)->first();
-                    if($lims_product_warehouse_data) {
-                        $lims_product_warehouse_data->price = null;
-                        $lims_product_warehouse_data->save();
+                if(isset($data['warehouse_id'])){
+                    foreach ($data['warehouse_id'] as $key => $warehouse_id) {
+                        $lims_product_warehouse_data = Product_Warehouse::FindProductWithoutVariant($lims_product_data->id, $warehouse_id)->first();
+                        if($lims_product_warehouse_data) {
+                            $lims_product_warehouse_data->price = null;
+                            $lims_product_warehouse_data->save();
+                        }
                     }
                 }
             }
@@ -1250,7 +1265,7 @@ class ProductController extends Controller
 
     public function search(Request $request)
     {
-        $product_code = explode(" ", $request['data']);
+        $product_code = explode(" (", $request['data']);
         $lims_product_data = Product::where('code', $product_code[0])->first();
 
         $product[] = $lims_product_data->name;
@@ -1391,7 +1406,7 @@ class ProductController extends Controller
             $product[] = $lims_product_data->code;
 
         $product[] = $lims_product_data->price + $additional_price;
-        $product[] = DNS1D::getBarcodePNG($lims_product_data->code, $lims_product_data->barcode_symbology);
+        $product[] = DNS1D::getBarcodePNG($product[1], $lims_product_data->barcode_symbology);
         $product[] = $lims_product_data->promotion_price;
         $product[] = config('currency');
         $product[] = config('currency_position');
@@ -1482,6 +1497,13 @@ class ProductController extends Controller
                 $product->image = 'zummXD2dvAtI.png';
 
            $product->name = htmlspecialchars(trim($data['name']));
+            if(in_array('ecommerce', explode(',',config('addons')))) {
+                $data['slug'] = Str::slug($data['name'], '-');
+                $data['slug'] = preg_replace('/[^A-Za-z0-9\-]/', '', $data['slug']);
+                $data['slug'] = str_replace( '\/', '/', $data['slug'] );
+                $product->slug = $data['slug'];
+                $product->in_stock = true;
+            }
            $product->code = $data['code'];
            $product->type = strtolower($data['type']);
            $product->barcode_symbology = 'C128';
@@ -1567,6 +1589,22 @@ class ProductController extends Controller
          $this->cacheForget('product_list');
          $this->cacheForget('product_list_with_variant');
          return redirect('products')->with('import_message', 'Product imported successfully');
+    }
+
+    public function allProductInStock()
+    {
+        if(!in_array('ecommerce',explode(',', config('addons'))))
+            return redirect()->back()->with('not_permitted', 'Please install the ecommerce addon!');
+        Product::where('is_active', true)->update(['in_stock' => true]);
+        return redirect()->back()->with('create_message', 'All Products set to in stock successfully!');
+    }
+
+    public function showAllProductOnline()
+    {
+        if(!in_array('ecommerce',explode(',', config('addons'))))
+            return redirect()->back()->with('not_permitted', 'Please install the ecommerce addon!');
+        Product::where('is_active', true)->update(['is_online' => true]);
+        return redirect()->back()->with('create_message', 'All Products will be showed to online!');
     }
 
     public function deleteBySelection(Request $request)

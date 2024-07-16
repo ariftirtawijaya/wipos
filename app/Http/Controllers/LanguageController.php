@@ -9,6 +9,8 @@ use App\Models\Language;
 
 class LanguageController extends Controller
 {
+    use \App\Traits\CacheForget;
+    
     public function switchLanguage($locale)
     {
         setcookie('language', $locale, time() + (86400 * 365), "/");

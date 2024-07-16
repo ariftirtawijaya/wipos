@@ -85,6 +85,7 @@
                     <th>{{trans('file.product')}} {{trans('file.Tax')}}</th>
                     <th>{{trans('file.grand total')}}</th>
                     <th>{{trans("file.Status")}}</th>
+                    <th>{{trans('file.Email Sent')}}</th>
                     <th class="not-exported">{{trans('file.action')}}</th>
                 </tr>
             </thead>
@@ -237,6 +238,7 @@
             {"data": "total_tax"},
             {"data": "grand_total"},
             {"data": "status"},
+            {"data": "is_sent"},
             {"data": "options"}
         ],
         'language': {
@@ -253,7 +255,7 @@
         'columnDefs': [
             {
                 "orderable": false,
-                'targets': [0, 2, 3, 4, 5, 6, 7, 8, 9]
+                'targets': [0, 2, 3, 4, 5, 6, 7, 8, 9, 10]
             },
             {
                 'render': function(data, type, row, meta){

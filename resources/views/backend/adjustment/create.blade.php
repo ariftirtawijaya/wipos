@@ -49,6 +49,7 @@
                                                     <tr>
                                                         <th>{{trans('file.name')}}</th>
                                                         <th>{{trans('file.Code')}}</th>
+                                                        <th>{{trans('file.Unit Cost')}}</th>
                                                         <th>{{trans('file.Quantity')}}</th>
                                                         <th>{{trans('file.action')}}</th>
                                                         <th><i class="dripicons-trash"></i></th>
@@ -57,7 +58,7 @@
                                                 <tbody>
                                                 </tbody>
                                                 <tfoot class="tfoot active">
-                                                    <th colspan="2">{{trans('file.Total')}}</th>
+                                                    <th colspan="3">{{trans('file.Total')}}</th>
                                                     <th id="total-qty" colspan="2">0</th>
                                                     <th><i class="dripicons-trash"></i></th>
                                                 </tfoot>
@@ -105,6 +106,7 @@
     var product_code = [];
     var product_name = [];
     var product_qty = [];
+    var unit_cost = [];
 
 	$('.selectpicker').selectpicker({
 	    style: 'btn-link',
@@ -119,8 +121,9 @@
 	        product_code = data[0];
 	        product_name = data[1];
 	        product_qty = data[2];
+	        unit_cost = data[3];
 	        $.each(product_code, function(index) {
-	            lims_product_array.push(product_code[index] + ' (' + product_name[index] + ')');
+	            lims_product_array.push(product_code[index] + ' (' + product_name[index] + ')' + '|' + unit_cost[index]);
 	        });
 	    });
 	});
@@ -193,6 +196,7 @@
                 data: data
             },
             success: function(data) {
+            	console.log(data);
                 var flag = 1;
                 $(".product-code").each(function(i) {
                     if ($(this).val() == data[1]) {
@@ -209,6 +213,7 @@
                     var cols = '';
                     cols += '<td>' + data[0] + '</td>';
                     cols += '<td>' + data[1] + '</td>';
+                    cols += '<td>' + data[4] + '<input type="hidden" name="unit_cost[]" value="'+data[4]+'" /></td>';
                     cols += '<td><input type="number" class="form-control qty" name="qty[]" value="1" required step="any" /></td>';
                     cols += '<td class="action"><select name="action[]" class="form-control act-val"><option value="-">{{trans("file.Subtraction")}}</option><option value="+">{{trans("file.Addition")}}</option></select></td>';
                     cols += '<td><button type="button" class="ibtnDel btn btn-md btn-danger">{{trans("file.delete")}}</button></td>';

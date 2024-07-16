@@ -51,6 +51,14 @@ class HomeController extends Controller
         return view('backend.documentation', compact('general_setting'));
     }
 
+    public function ecomDocumentation()
+    {
+        $general_setting =  Cache::remember('general_setting', 60*60*24*365, function () {
+            return DB::table('general_settings')->latest()->first();
+        });
+        return view('backend.ecom-documentation', compact('general_setting'));
+    }
+
     public function addonList()
     {
         return view('backend.addonlist');
@@ -58,6 +66,7 @@ class HomeController extends Controller
 
     public function dashboard()
     {
+        //code for smscloud
         /*$headers = array(
             "Authorization: Bearer kRHXREZr1SmBu32lSZ26GB6VlyKhjWLpDOB",
             "Content-Type: application/json",
@@ -196,7 +205,7 @@ class HomeController extends Controller
         config()->set('database.connections.mysql.strict', true);
         DB::reconnect();
         //fetching data for auto updates
-        if(Auth::user()->role_id <= 2 && isset($_COOKIE['login_now']) && $_COOKIE['login_now']) {
+        if(!config('database.connections.saleprosaas_landlord') && Auth::user()->role_id <= 2 && isset($_COOKIE['login_now']) && $_COOKIE['login_now']) {
             $autoUpdateData = $this->general();
             $alertBugEnable =  $autoUpdateData['alertBugEnable'];
             $alertVersionUpgradeEnable = $autoUpdateData['alertVersionUpgradeEnable'];
@@ -278,12 +287,12 @@ class HomeController extends Controller
     {
         if(Auth::user()->role_id > 2 && cache()->get('general_setting')->staff_access == 'own')
         {
-            $recent_purchase = Purchase::join('suppliers', 'suppliers.id', '=', 'purchases.supplier_id')->select('purchases.id','purchases.reference_no','purchases.payment_status','purchases.created_at','purchases.grand_total','purchases.user_id','suppliers.name')->orderBy('id', 'desc')->where('purchases.user_id', Auth::id())->take(5)->get();
+            $recent_purchase = Purchase::leftJoin('suppliers', 'suppliers.id', '=', 'purchases.supplier_id')->select('purchases.id','purchases.reference_no','purchases.status','purchases.created_at','purchases.grand_total','purchases.user_id','suppliers.name')->orderBy('id', 'desc')->where('purchases.user_id', Auth::id())->take(5)->get();
             return response()->json($recent_purchase);
         }
         else
         {
-            $recent_purchase = Purchase::join('suppliers', 'suppliers.id', '=', 'purchases.supplier_id')->select('purchases.id','purchases.reference_no','purchases.payment_status','purchases.created_at','purchases.grand_total','suppliers.name')->orderBy('id', 'desc')->take(5)->get();
+            $recent_purchase = Purchase::leftJoin('suppliers', 'suppliers.id', '=', 'purchases.supplier_id')->select('purchases.id','purchases.reference_no','purchases.status','purchases.created_at','purchases.grand_total','suppliers.name')->orderBy('id', 'desc')->take(5)->get();
             return response()->json($recent_purchase);
         }
     }
@@ -451,11 +460,13 @@ class HomeController extends Controller
                 }
                 foreach ($product_purchase_data as $key => $product_purchase) {
                     $purchase_unit_data = $units->where('id', $product_purchase->purchase_unit_id)->first();
-                    if($purchase_unit_data->operator == '*')
-                        $total_received_qty += $product_purchase->recieved * $purchase_unit_data->operation_value;
-                    else
-                        $total_received_qty += $product_purchase->recieved / $purchase_unit_data->operation_value;
-                    $total_purchased_amount += $product_purchase->total;
+                    if($purchase_unit_data) {
+                        if($purchase_unit_data->operator == '*')
+                            $total_received_qty += $product_purchase->recieved * $purchase_unit_data->operation_value;
+                        else
+                            $total_received_qty += $product_purchase->recieved / $purchase_unit_data->operation_value;
+                        $total_purchased_amount += $product_purchase->total;
+                    }
                 }
                 if($total_received_qty)
                     $averageCost = $total_purchased_amount / $total_received_qty;
@@ -496,5 +507,10 @@ class HomeController extends Controller
     public function switchTheme($theme)
     {
         setcookie('theme', $theme, time() + (86400 * 365), "/");
+    }
+
+    public function sessionRenew(Request $request)
+    {
+        return response()->json('success'); 
     }
 }

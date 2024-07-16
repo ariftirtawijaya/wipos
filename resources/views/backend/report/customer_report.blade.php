@@ -8,7 +8,7 @@
             {!! Form::open(['route' => 'report.customer', 'method' => 'post']) !!}
             <div class="row mb-3">
                 <div class="col-md-4 offset-md-2 mt-3">
-                    <div class="form-group row">
+                    <div class="form-group row daterangepicker-container">
                         <label class="d-tc mt-2"><strong>{{trans('file.Choose Your Date')}}</strong> &nbsp;</label>
                         <div class="d-tc">
                             <div class="input-group">
@@ -206,6 +206,10 @@
     $('.selectpicker').selectpicker('refresh');
 
     $(".daterangepicker-field").daterangepicker({
+        parentElement: '.daterangepicker-container',
+        @if( Config::get('app.locale') == 'ar' || $general_setting->is_rtl)
+        orientation: 'left',
+        @endif
       callback: function(startDate, endDate, period){
         var start_date = startDate.format('YYYY-MM-DD');
         var end_date = endDate.format('YYYY-MM-DD');

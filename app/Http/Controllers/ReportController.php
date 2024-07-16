@@ -374,8 +374,9 @@ class ReportController extends Controller
             $end = strtotime($year .'-12-31');
             while($start <= $end)
             {
+                $number_of_day = date('t', mktime(0, 0, 0, date('m', $start), 1, $year));
                 $start_date = $year . '-'. date('m', $start).'-'.'01';
-                $end_date = $year . '-'. date('m', $start).'-'.'31';
+                $end_date = $year . '-'. date('m', $start).'-'.$number_of_day;
 
                 $temp_total_discount = Sale::whereDate('created_at', '>=' , $start_date)->whereDate('created_at', '<=' , $end_date)->sum('total_discount');
                 $total_discount[] = number_format((float)$temp_total_discount, config('decimal'), '.', '');
@@ -414,8 +415,9 @@ class ReportController extends Controller
         $end = strtotime($year .'-12-31');
         while($start <= $end)
         {
+            $number_of_day = date('t', mktime(0, 0, 0, date('m', $start), 1, $year));
             $start_date = $year . '-'. date('m', $start).'-'.'01';
-            $end_date = $year . '-'. date('m', $start).'-'.'31';
+            $end_date = $year . '-'. date('m', $start).'-'.$number_of_day;
 
             $temp_total_discount = Sale::where('warehouse_id', $data['warehouse_id'])->whereDate('created_at', '>=' , $start_date)->whereDate('created_at', '<=' , $end_date)->sum('total_discount');
             $total_discount[] = number_format((float)$temp_total_discount, config('decimal'), '.', '');
@@ -449,8 +451,9 @@ class ReportController extends Controller
             $end = strtotime($year .'-12-31');
             while($start <= $end)
             {
+                $number_of_day = date('t', mktime(0, 0, 0, date('m', $start), 1, $year));
                 $start_date = $year . '-'. date('m', $start).'-'.'01';
-                $end_date = $year . '-'. date('m', $start).'-'.'31';
+                $end_date = $year . '-'. date('m', $start).'-'.$number_of_day;
 
                 $query1 = array(
                     'SUM(total_discount) AS total_discount',
@@ -488,8 +491,9 @@ class ReportController extends Controller
         $end = strtotime($year .'-12-31');
         while($start <= $end)
         {
+            $number_of_day = date('t', mktime(0, 0, 0, date('m', $start), 1, $year));
             $start_date = $year . '-'. date('m', $start).'-'.'01';
-            $end_date = $year . '-'. date('m', $start).'-'.'31';
+            $end_date = $year . '-'. date('m', $start).'-'.$number_of_day;
 
             $query1 = array(
                 'SUM(total_discount) AS total_discount',
@@ -523,8 +527,9 @@ class ReportController extends Controller
 
             while($start <= $end)
             {
+                $number_of_day = date('t', mktime(0, 0, 0, date('m', $start), 1, date('Y', $start)));
                 $start_date = date("Y-m", $start).'-'.'01';
-                $end_date = date("Y-m", $start).'-'.'31';
+                $end_date = date("Y-m", $start).'-'.$number_of_day;
 
                 $best_selling_qty = Product_Sale::select(DB::raw('product_id, sum(qty) as sold_qty'))->whereDate('created_at', '>=' , $start_date)->whereDate('created_at', '<=' , $end_date)->groupBy('product_id')->orderBy('sold_qty', 'desc')->take(1)->get();
                 if(!count($best_selling_qty)){
@@ -559,8 +564,9 @@ class ReportController extends Controller
 
         while($start <= $end)
         {
+            $number_of_day = date('t', mktime(0, 0, 0, date('m', $start), 1, date('Y', $start)));
             $start_date = date("Y-m", $start).'-'.'01';
-            $end_date = date("Y-m", $start).'-'.'31';
+            $end_date = date("Y-m", $start).'-'.$number_of_day;
 
             $best_selling_qty = DB::table('sales')
                                 ->join('product_sales', 'sales.id', '=', 'product_sales.sale_id')->select(DB::raw('product_sales.product_id, sum(product_sales.qty) as sold_qty'))->where('sales.warehouse_id', $data['warehouse_id'])->whereDate('sales.created_at', '>=' , $start_date)->whereDate('sales.created_at', '<=' , $end_date)->groupBy('product_id')->orderBy('sold_qty', 'desc')->take(1)->get();
@@ -599,11 +605,13 @@ class ReportController extends Controller
         );
         config()->set('database.connections.mysql.strict', false);
         DB::reconnect();
-        $product_sale_data = Product_Sale::select(DB::raw('product_id, product_batch_id, sale_unit_id, sum(qty) as sold_qty, sum(product_sales.return_qty) as return_qty, sum(total) as sold_amount'))
-                            ->whereDate('created_at', '>=' , $start_date)
-                            ->whereDate('created_at', '<=' , $end_date)
-                            ->groupBy('product_id', 'product_batch_id')
+        $product_sale_data = Product_Sale::join('sales', 'product_sales.sale_id', '=', 'sales.id')
+                            ->select(DB::raw('product_sales.product_id, product_sales.product_batch_id, product_sales.sale_unit_id, sum(product_sales.qty) as sold_qty, sum(product_sales.return_qty) as return_qty, sum(product_sales.total) as sold_amount'))
+                            ->whereDate('sales.created_at', '>=' , $start_date)
+                            ->whereDate('sales.created_at', '<=' , $end_date)
+                            ->groupBy('product_sales.product_id', 'product_sales.product_batch_id')
                             ->get();
+                            
         config()->set('database.connections.mysql.strict', true);
             DB::reconnect();
         $data = $this->calculateAverageCOGS($product_sale_data);
@@ -816,12 +824,14 @@ class ReportController extends Controller
                 }
                 foreach ($product_purchase_data as $key => $product_purchase) {
                     $purchase_unit_data = Unit::select('operator', 'operation_value')->find($product_purchase->purchase_unit_id);
-                    if($purchase_unit_data->operator == '*')
-                        $total_received_qty += $product_purchase->recieved * $purchase_unit_data->operation_value;
-                    else
-                        $total_received_qty += $product_purchase->recieved / $purchase_unit_data->operation_value;
-                    $total_purchased_amount += $product_purchase->total;
-                    $total_tax += $product_purchase->tax;
+                    if($purchase_unit_data) {
+                        if($purchase_unit_data->operator == '*')
+                            $total_received_qty += $product_purchase->recieved * $purchase_unit_data->operation_value;
+                        else
+                            $total_received_qty += $product_purchase->recieved / $purchase_unit_data->operation_value;
+                        $total_purchased_amount += $product_purchase->total;
+                        $total_tax += $product_purchase->tax;
+                    }
                 }
                 if($total_received_qty) {
                     $averageCost = $total_purchased_amount / $total_received_qty;
